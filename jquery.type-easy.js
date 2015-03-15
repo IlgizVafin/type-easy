@@ -2,12 +2,59 @@
 
     var defaults = {
         lang: 'RU',
-        delay: 300
+        disableCapsLock: false
     };
 
     var ru_mapTable = {
-        '190': 'ю',
-        '191': {
+        81: 'й',
+        87: 'ц',
+        69: 'у',
+        82: 'к',
+        84: 'е',
+        89: 'н',
+        85: 'г',
+        73: 'ш',
+        79: 'щ',
+        80: 'з',
+        219: {
+            default: 'х',
+            ctrl: '['
+        },
+        221: {
+            default: 'ъ',
+            ctrl: ']'
+        },
+        220: {
+            default: '\\',
+            shift: '|'
+        },
+        65: 'ф',
+        83: 'ы',
+        68: 'в',
+        70: 'а',
+        71: 'п',
+        72: 'р',
+        74: 'о',
+        75: 'л',
+        76: 'д',
+        186: {
+            default: 'ж',
+            ctrl: ';'
+        },
+        222: {
+            default: 'э',
+            ctrl: '\''
+        },
+        90: 'я',
+        88: 'x',
+        67: 'с',
+        86: 'м',
+        66: 'и',
+        78: 'т',
+        77: 'ь',
+        188: 'б',
+        190: 'ю',
+        191: {
             default: '.',
             shift: ','
         }
@@ -29,7 +76,7 @@
                 return;
 
             if (ctrlKey) {
-                return mapObj.ctrl || mapObj.default || mapObj;
+                return mapObj.ctrl;
             } else if (shiftKey) {
                 return mapObj.shift || (mapObj.default ? mapObj.default.toUpperCase() : mapObj.toUpperCase());
             } else {
@@ -57,23 +104,49 @@
     $.fn.type_easy = function (options) {
 
         var settings = $.extend({}, defaults, options),
-            el = $(this);
+            el = $(this),
+            selection = {},
+            char = '';
 
         el.keydown(function (e) {
 
-            var char = helper.getChar(e, settings.lang);
+            char = helper.getChar(e, settings.lang);
 
-            if (char) {
+            selection = el.selection('getPos');
+
+            if (char && e.ctrlKey) {
+
                 e.preventDefault();
                 e.stopPropagation();
 
-                var selection = el.selection('getPos'),
-                    currentValue = el.val();
-
-                el.val(currentValue.replaceAt(selection.start, selection.end, char));
-
-                el.selection('setPos', {start: selection.start + 1, end: selection.start + 1});
+                el.trigger('keypress');
             }
+
+        });
+
+        el.keypress(function (e) {
+
+            if (!char)
+                return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (!settings.disableCapsLock) {
+
+                var s = String.fromCharCode(e.which);
+
+                if (s.toUpperCase() === s && s.toLowerCase() !== s && !e.shiftKey) {
+                    char = char.toUpperCase();
+                } else if (s.toUpperCase() !== s && s.toLowerCase() === s && e.shiftKey) {
+                    char = char.toLowerCase();
+                }
+
+            }
+
+            el.val(el.val().replaceAt(selection.start, selection.end, char));
+
+            el.selection('setPos', {start: selection.start + 1, end: selection.start + 1});
 
         });
     };
