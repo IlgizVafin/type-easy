@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>type-easy</title>
+    <link rel="stylesheet" href="styles.css"/>
+    <script src="../bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="../jquery.type-easy.js"></script>
+</head>
+<body>
+<p>Only cyrillic</p>
+<table>
+    <tbody>
+    <tr>
+        <td>Input</td>
+        <td><input id="ruInput" type="text"/></td>
+    </tr>
+    <tr>
+        <td>Textarea</td>
+        <td><textarea id="ruTextarea"></textarea></td>
+    </tr>
+    </tbody>
+</table>
+<hr/>
+<p>Only latin</p>
+<table>
+    <tbody>
+    <tr>
+        <td>Input</td>
+        <td><input id="enInput" type="text"/></td>
+    </tr>
+    <tr>
+        <td>Textarea</td>
+        <td><textarea id="enTextarea"></textarea></td>
+    </tr>
+    </tbody>
+</table>
+<hr/>
+<script>
+    $('#ruInput').type_easy();
+    $('#ruTextarea').type_easy();
+    $('#enInput').type_easy({lang: 'EN'});
+    $('#enTextarea').type_easy({lang: 'EN'});
+</script>
+</body>
+</html>
