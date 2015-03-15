@@ -2,7 +2,8 @@
 
     var defaults = {
         lang: 'RU',
-        disableCapsLock: false
+        disableCapsLock: false,
+        restrictRegex: ''
     };
 
     var ru_mapTable = {
@@ -46,7 +47,7 @@
             ctrl: '\''
         },
         90: 'я',
-        88: 'x',
+        88: 'ч',
         67: 'с',
         86: 'м',
         66: 'и',
@@ -57,9 +58,79 @@
         191: {
             default: '.',
             shift: ','
-        }
+        },
+        192: 'ё',
+        49: {
+            default: '1',
+            shift: '!'
+        },
+        50: {
+            default: '2',
+            shift: '"'
+        },
+        51: {
+            default: '3',
+            shift: '№'
+        },
+        52: {
+            default: '4',
+            shift: ';'
+        },
+        53: {
+            default: '5',
+            shift: '%'
+        },
+        54: {
+            default: '6',
+            shift: ':'
+        },
+        55: {
+            default: '7',
+            shift: '?'
+        },
+        56: {
+            default: '8',
+            shift: '*'
+        },
+        57: {
+            default: '9',
+            shift: '('
+        },
+        48: {
+            default: '0',
+            shift: ')'
+        },
+        189: {
+            default: '-',
+            shift: '_'
+        },
+        187: {
+            default: '=',
+            shift: '+'
+        },
+
+        //num keyboard
+        96: '0',
+        97: '1',
+        98: '2',
+        99: '3',
+        100: '4',
+        101: '5',
+        102: '6',
+        103: '7',
+        104: '8',
+        105: '9',
+        111: '/',
+        106: '*',
+        109: '-',
+        107: '+',
+        110: ',',
+
+        //space
+        32: ' '
     };
 
+    //todo map Table for EN layout
     var en_mapTable = {
         '190': {
             default: '.',
@@ -144,9 +215,15 @@
 
             }
 
-            el.val(el.val().replaceAt(selection.start, selection.end, char));
+            var newValue = el.val().replaceAt(selection.start, selection.end, char);
 
-            el.selection('setPos', {start: selection.start + 1, end: selection.start + 1});
+            if (!settings.restrictRegex || !settings.restrictRegex.test(newValue)) {
+
+                el.val(el.val().replaceAt(selection.start, selection.end, char));
+
+                el.selection('setPos', {start: selection.start + 1, end: selection.start + 1});
+
+            }
 
         });
     };

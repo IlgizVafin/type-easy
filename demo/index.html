@@ -38,7 +38,7 @@
 </table>
 <hr/>
 <script>
-    $('#ruInput').type_easy();
+    $('#ruInput').type_easy({restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/});
     $('#ruTextarea').type_easy({disableCapsLock: true});
     $('#enInput').type_easy({lang: 'EN'});
     $('#enTextarea').type_easy({lang: 'EN'});
