@@ -20,7 +20,7 @@ $('#ruInput').type_easy({
 });
 ```
 
-## Full settings list
+##### Full settings list
 ```javascript
 language: 'DEFAULT',//RU/EN
 capsLockOff: false,
