@@ -5,6 +5,7 @@
     <title>type-easy</title>
     <link rel="stylesheet" href="styles.css"/>
     <script src="../bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="../bower_components/jquery.selection/src/jquery.selection.js"></script>
     <script src="../jquery.type-easy.js"></script>
 </head>
 <body>
@@ -14,6 +15,10 @@
     <tr>
         <td>Input</td>
         <td><input id="ruInput" type="text"/></td>
+    </tr>
+    <tr>
+        <td>only numbers</td>
+        <td><input id="ruInput_numbers" type="text"/></td>
     </tr>
     <tr>
         <td>Textarea</td>
@@ -37,8 +42,17 @@
 </table>
 <hr/>
 <script>
-    $('#ruInput').type_easy();
-    $('#ruTextarea').type_easy();
+    $('#ruInput').type_easy({
+        lang: 'RU',
+        restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/,
+        upperCaseRegex: /^([^- '])|[- ']([^- '])/g
+    });
+    $('#ruInput_numbers').type_easy({restrictRegex: /[^0-9]/, lang: 'RU'});
+    $('#ruTextarea').type_easy({
+        disableCapsLock: true,
+        restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/,
+        upperCaseRegex: /^([^- '])|[- ']([^- '])/g
+    });
     $('#enInput').type_easy({lang: 'EN'});
     $('#enTextarea').type_easy({lang: 'EN'});
 </script>
