@@ -225,7 +225,23 @@
 
             var newValue = el.val().replaceAt(startSelection, endSelection, char);
 
-            if (settings.restrictRegex && settings.restrictRegex.test(newValue)) return;
+            if (settings.restrictRegex) {
+
+                var tempArr,
+                    restrict = false,
+                    regex = new RegExp(settings.restrictRegex.source, 'g');
+
+                while ((tempArr = regex.exec(newValue)) != null && !restrict) {
+
+                    if (regex.lastIndex === caretPosition)
+                        restrict = true;
+
+                }
+
+                if (restrict)
+                    return false;
+
+            }
 
             if (caretPosition === newValue.length) {
 

@@ -44,13 +44,13 @@
 <script>
     $('#ruInput').type_easy({
         lang: 'RU',
-        restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/,
+        restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/g,
         upperCaseRegex: /^([^- '])|[- ']([^- '])/g
     });
     $('#ruInput_numbers').type_easy({restrictRegex: /[^0-9]/, lang: 'RU'});
     $('#ruTextarea').type_easy({
         disableCapsLock: true,
-        restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/,
+        restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/g,
         upperCaseRegex: /^([^- '])|[- ']([^- '])/g
     });
     $('#enInput').type_easy({lang: 'EN'});
