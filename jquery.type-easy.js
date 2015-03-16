@@ -1,7 +1,7 @@
 (function ($) {
 
     var defaults = {
-        lang: 'RU',
+        lang: 'DEFAULT',
         disableCapsLock: false,
         restrictRegex: '',
         upperCaseRegex: ''
@@ -167,6 +167,14 @@
                 case 'EN':
                     mapTable = en_mapTable;
                     break;
+                default:
+                    switch (event.keyCode) {
+                        case 222:
+                            if (event.ctrlKey)
+                                return '\'';
+                            break;
+                    }
+                    break;
             }
 
             return helper.$parseMapTable(event.keyCode, event.ctrlKey, event.shiftKey, mapTable);
@@ -177,14 +185,10 @@
 
         var settings = $.extend({}, defaults, options),
             el = $(this),
-            selection = {},
             char = '';
 
         el.keydown(function (e) {
-
             char = helper.getChar(e, settings.lang);
-
-            selection = el.selection('getPos');
 
             //BACKSPACE - 8, DELETE - 46
             if ((char && e.ctrlKey) ||
@@ -196,26 +200,21 @@
 
                 el.trigger('keypress', {keyCode: e.keyCode});
             }
-
         });
 
         el.keypress(function (e) {
 
-            var startSelection = selection.start,
+            var selection = el.selection('getPos'),
+                startSelection = selection.start,
                 endSelection = selection.end,
                 caretPosition = selection.start + 1;
 
             if (!char) {
-                if (arguments[1] &&
-                    (arguments[1].keyCode === 8 || arguments[1].keyCode === 46)) {
-                    char = "";
-
-                    if (startSelection === endSelection) {
-                        startSelection -= 1;
-                        caretPosition -= 2;
-                    } else
-                        caretPosition -= 1;
+                if (arguments[1] && (arguments[1].keyCode === 8 || arguments[1].keyCode === 46)) {
+                    return document.execCommand(arguments[1].keyCode === 8 ? 'delete' : 'forwardDelete', false, null);
                 }
+                else if (settings.lang === 'DEFAULT' && !char)
+                    char = String.fromCharCode(e.keyCode);
                 else
                     return;
             }
@@ -238,9 +237,10 @@
             var newValue = el.val().replaceAt(startSelection, endSelection, char),
                 newSelection = {start: caretPosition, end: caretPosition};
 
+            //todo не верно курсор ставится
             el
+                //.toUpperCase(settings.upperCaseRegex, newSelection)
                 .restrictSymbols(settings.restrictRegex, newValue, newSelection)
-                .toUpperCase(settings.upperCaseRegex, newSelection);
 
         });
 
@@ -258,10 +258,12 @@
             var value = $(this).val();
 
             if (regex) {
+
                 value = value.replace(regex, function () {
                     var offset = arguments[arguments.length - 2],
                         match = arguments[0];
 
+                    //todo для offset == 0 не верно
                     if (offset !== 0 ? (offset + arguments[0].length) : offset === selection.start) {
                         return match.toUpperCase();
                     }
@@ -270,7 +272,6 @@
                 });
 
                 $(this).val(value);
-                $(this).selection('setPos', selection);
             }
 
             return $(this);
