@@ -1,12 +1,12 @@
 (function ($) {
 
     var defaults = {
-        lang: 'DEFAULT',//RU/EN
-        disableCapsLock: false,
+        language: 'DEFAULT',//RU/EN
+        capsLockOff: false,
         restrictRegex: '',
         upperCaseRegex: '',
-        register: 'DEFAULT',//UPPER/LOWER
-        toLowerByShift: false
+        register: 'DEFAULT',//UPPER_CASE/LOWER_CASE
+        lowerCaseByShift: false
     };
 
     var ru_mapTable = {
@@ -24,7 +24,7 @@
         221: 'ъ',
         220: {
             'default': '\\',
-            shift: '|'
+            shift: '/'
         },
         65: 'ф',
         83: 'ы',
@@ -35,8 +35,14 @@
         74: 'о',
         75: 'л',
         76: 'д',
-        186: 'ж',
-        222: 'э',
+        186: {
+            default: 'ж',
+            ctrl: ';'
+        },
+        222: {
+            default: 'э',
+            ctrl: '\''
+        },
         90: 'я',
         88: 'ч',
         67: 'с',
@@ -44,169 +50,73 @@
         66: 'и',
         78: 'т',
         77: 'ь',
-        188: 'б',
-        190: 'ю',
+        188: {
+            default: 'б',
+            ctrl: ','
+        },
+        190: {
+            default: 'ю',
+            ctrl: '.'
+        },
         191: {
-            'default': '.',
-            shift: ','
+            default: '.',
+            shift: ',',
+            ctrl: '/'
         },
         192: 'ё',
         49: {
+            default: '1',
             shift: '!'
         },
         50: {
-            shift: '"'
+            default: '2',
+            shift: '"',
+            ctrl: '@'
         },
         51: {
-            shift: '№'
+            default: '3',
+            shift: '№',
+            ctrl: '#'
         },
         52: {
-            shift: ';'
+            default: '4',
+            shift: ';',
+            ctrl: '$'
         },
         53: {
+            default: '5',
             shift: '%'
         },
         54: {
-            shift: ':'
+            default: '6',
+            shift: ':',
+            ctrl: '^'
         },
         55: {
-            shift: '?'
+            default: '7',
+            shift: '?',
+            ctrl: '&'
         },
         56: {
+            default: '8',
             shift: '*'
         },
         57: {
+            default: '9',
             shift: '('
         },
         48: {
+            default: '0',
             shift: ')'
         },
         189: {
+            default: '-',
             shift: '_'
         },
         187: {
+            default: '=',
             shift: '+'
-        }
-    };
-
-    var en_mapTable = {
-        81: 'q',
-        87: 'w',
-        69: 'e',
-        82: 'r',
-        84: 't',
-        89: 'y',
-        85: 'u',
-        73: 'i',
-        79: 'o',
-        80: 'p',
-        219: '[',
-        221: ']',
-        220: {
-            'default': '\\',
-            shift: '|'
         },
-        65: 'a',
-        83: 's',
-        68: 'd',
-        70: 'f',
-        71: 'g',
-        72: 'h',
-        74: 'j',
-        75: 'k',
-        76: 'l',
-        186: ';',
-        222: "'",
-        90: 'z',
-        88: 'x',
-        67: 'c',
-        86: 'v',
-        66: 'b',
-        78: 'n',
-        77: 'm',
-        188: ',',
-        190: '.',
-        191: {
-            'default': '/',
-            shift: '?'
-        },
-        192: '`',
-        49: {
-            shift: '!'
-        },
-        50: {
-            shift: '@'
-        },
-        51: {
-            shift: '#'
-        },
-        52: {
-            shift: '$'
-        },
-        53: {
-            shift: '%'
-        },
-        54: {
-            shift: '^'
-        },
-        55: {
-            shift: '&'
-        },
-        56: {
-            shift: '*'
-        },
-        57: {
-            shift: '('
-        },
-        48: {
-            shift: ')'
-        },
-        189: {
-            shift: '_'
-        },
-        187: {
-            shift: '+'
-        }
-    };
-
-    var def_mapTable = {};
-
-    var ctrl = {
-        50: '@',
-        51: '#',
-        52: '$',
-        53: '%',
-        54: '^',
-        55: '&',
-        186: ';',
-        188: ',',
-        190: '.',
-        191: '/',
-        192: '`',
-        219: '[',
-        221: ']',
-        222: "'"
-    };
-
-    for (var code in ctrl) {
-        ctrl[code] = {
-            ctrl: ctrl[code]
-        }
-    }
-
-    var num = {
-        48: '0',
-        49: '1',
-        50: '2',
-        51: '3',
-        52: '4',
-        53: '5',
-        54: '6',
-        55: '7',
-        56: '8',
-        57: '9',
-        187: '=',
-        189: '-',
 
         //num keyboard
         96: '0',
@@ -227,35 +137,167 @@
 
         //space
         32: ' '
-    }
+    };
 
-    var mapping = function (target, source) {
-        for (var code in source) {
-            //if (!target[code]) throw new Error('Fill you table!');
-            if (typeof source[code] == "string") {
-                //if (target[code]) throw new Error('Rewrite table!');
-                if (typeof target[code] == "object") {
-                    target[code].default = source[code];
-                } else target[code] = source[code];
-                continue;
-            }
-            if (typeof target[code] == "string") {
-                target[code] = {default: target[code]}
-            }
-            for (var prop in source[code]) {
-                target[code] = target[code] || {};
-                target[code][prop] = source[code][prop];
-            }
+    var en_mapTable = {
+        81: 'q',
+        87: 'w',
+        69: 'e',
+        82: 'r',
+        84: 't',
+        89: 'y',
+        85: 'u',
+        73: 'i',
+        79: 'o',
+        80: 'p',
+        219: {
+            default: '[',
+            shift: '{'
+        },
+        221: {
+            default: ']',
+            shift: '}'
+        },
+        220: {
+            'default': '\\',
+            shift: '|'
+        },
+        65: 'a',
+        83: 's',
+        68: 'd',
+        70: 'f',
+        71: 'g',
+        72: 'h',
+        74: 'j',
+        75: 'k',
+        76: 'l',
+        186: {
+            default: ';',
+            shift: ':'
+        },
+        222: {
+            default: '\'',
+            ctrl: '\'',
+            shift: '"'
+        },
+        90: 'z',
+        88: 'x',
+        67: 'c',
+        86: 'v',
+        66: 'b',
+        78: 'n',
+        77: 'm',
+        188: {
+            default: ',',
+            shift: '<',
+            ctrl: ','
+        },
+        190: {
+            default: '.',
+            shift: '>',
+            ctrl: '.'
+        },
+        191: {
+            default: '/',
+            shift: '?',
+            ctrl: '/'
+        },
+        192: {
+            default: '`',
+            shift: '~'
+        },
+        49: {
+            default: '1',
+            shift: '!'
+        },
+        50: {
+            default: '2',
+            shift: '@',
+            ctrl: '"'
+        },
+        51: {
+            default: '3',
+            shift: '#',
+            ctrl: '№'
+        },
+        52: {
+            default: '4',
+            shift: '$',
+            ctrl: ';'
+        },
+        53: {
+            default: '5',
+            shift: '%'
+        },
+        54: {
+            default: '6',
+            shift: '^',
+            ctrl: ':'
+        },
+        55: {
+            default: '7',
+            shift: '&',
+            ctrl: '?'
+        },
+        56: {
+            default: '8',
+            shift: '*'
+        },
+        57: {
+            default: '9',
+            shift: '('
+        },
+        48: {
+            default: '0',
+            shift: ')'
+        },
+        189: {
+            default: '-',
+            shift: '_'
+        },
+        187: {
+            default: '=',
+            shift: '+'
+        },
+
+        //num keyboard
+        96: '0',
+        97: '1',
+        98: '2',
+        99: '3',
+        100: '4',
+        101: '5',
+        102: '6',
+        103: '7',
+        104: '8',
+        105: '9',
+        111: '/',
+        106: '*',
+        109: '-',
+        107: '+',
+        110: '.',
+
+        //space
+        32: ' '
+    };
+
+    var default_mapTable = {
+        186: {
+            ctrl: ';'
+        },
+        222: {
+            ctrl: '\''
+        },
+        188: {
+            ctrl: ','
+        },
+        190: {
+            ctrl: '.'
+        },
+        191: {
+            ctrl: '/'
         }
-    }
-
-    mapping(def_mapTable, ctrl);
-
-    mapping(ru_mapTable, num);
-    mapping(ru_mapTable, ctrl);
-
-    mapping(en_mapTable, num);
-    mapping(en_mapTable, ctrl);
+    };
 
     var helper = {
         $parseMapTable: function (e, mapTable) {
@@ -268,7 +310,14 @@
             if (e.ctrlKey) {
                 return mapObj.ctrl;
             } else if (e.shiftKey) {
-                return mapObj.shift || (mapObj.default || mapObj).toUpperCase();
+                if (mapObj.shift)
+                    return mapObj.shift;
+                if (mapObj.default)
+                    return mapObj.default.toUpperCase();
+                if (typeof mapObj == "string")
+                    return mapObj.toUpperCase();
+
+                return null;
             } else {
                 if (mapObj.default) return mapObj.default;
                 else if (typeof mapObj == "string") return mapObj;
@@ -281,7 +330,7 @@
                 case 'EN':
                     return helper.$parseMapTable(e, en_mapTable);
                 default:
-                    return helper.$parseMapTable(e, def_mapTable);
+                    return helper.$parseMapTable(e, default_mapTable);
             }
         }
     };
@@ -294,15 +343,18 @@
 
         el.keydown(function (e) {
 
-            char = helper.getChar(e, settings.lang);
-            if (e.ctrlKey) {
+            char = helper.getChar(e, settings.language);
+            if (e.ctrlKey && char) {
                 el.trigger('keypress', e);
                 return false;
             }
-            return true;
+
         });
 
         el.keypress(function (e) {
+
+            if (settings.language === "DEFAULT" && !char)
+                char = String.fromCharCode(e.keyCode);
 
             if (!char) return true;
 
@@ -315,7 +367,7 @@
                 caretPosition = selection.start + 1,
                 newSelection = {start: caretPosition, end: caretPosition};
 
-            if (!settings.disableCapsLock) {
+            if (!settings.capsLockOff) {
 
                 var s = String.fromCharCode(e.keyCode);
 
@@ -327,13 +379,13 @@
 
             }
 
-            if (settings.register == "UPPER") {
+            if (settings.register == "UPPER_CASE") {
                 char = char.toUpperCase();
-            } else if (settings.register == "LOWER") {
+            } else if (settings.register == "LOWER_CASE") {
                 char = char.toLowerCase();
             }
 
-            if (settings.toLowerByShift && e.shiftKey) {
+            if (settings.lowerCaseByShift && e.shiftKey) {
                 char = char.toLowerCase();
             }
 
@@ -347,14 +399,14 @@
 
                 while ((tempArr = regex.exec(newValue)) != null && !restrict) {
 
-                    if (regex.lastIndex === caretPosition)
+                    if (regex.lastIndex === caretPosition ||
+                        tempArr.index === startSelection)
                         restrict = true;
 
                 }
 
                 if (restrict)
                     return false;
-
             }
 
             if (caretPosition === newValue.length) {
@@ -364,7 +416,7 @@
                         var offset = arguments[arguments.length - 2],
                             match = arguments[0];
 
-                        if (settings.toLowerByShift && e.shiftKey) return match;
+                        if (settings.lowerCaseByShift && e.shiftKey) return match;
 
                         if (offset + arguments[0].length === newSelection.start) {
                             return match.toUpperCase();
@@ -382,6 +434,8 @@
             if ($.isFunction(callback))
                 callback(newValue);
         });
+
+        return el.unbind;
     };
 
     String.prototype.replaceAt = function (start, end, character) {
