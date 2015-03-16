@@ -43,18 +43,19 @@
 <hr/>
 <script>
     $('#ruInput').type_easy({
-        lang: 'RU',
-        restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/,
+    	lang: 'RU',
+    	disableCapsLock: false,
+        restrictRegex: /^[- ']|[^- 'ёа-яА-Я]|([- '])\1/,
         upperCaseRegex: /^([^- '])|[- ']([^- '])/g
     });
-    $('#ruInput_numbers').type_easy({restrictRegex: /[^0-9]/, lang: 'RU'});
-    $('#ruTextarea').type_easy({
+     $('#ruInput_numbers').type_easy({restrictRegex: /[^0-9]/, lang: 'RU'});
+     $('#ruTextarea').type_easy({
         disableCapsLock: true,
         restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/,
         upperCaseRegex: /^([^- '])|[- ']([^- '])/g
-    });
-    $('#enInput').type_easy({lang: 'EN'});
-    $('#enTextarea').type_easy({lang: 'EN'});
+     });
+     $('#enInput').type_easy({lang: 'EN'});
+     $('#enTextarea').type_easy({lang: 'EN'});
 </script>
 </body>
 </html>
