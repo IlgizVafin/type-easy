@@ -3,7 +3,8 @@
     var defaults = {
         lang: 'RU',
         disableCapsLock: false,
-        restrictRegex: ''
+        restrictRegex: '',
+        upperCaseRegex: ''
     };
 
     var ru_mapTable = {
@@ -185,27 +186,46 @@
 
             selection = el.selection('getPos');
 
-            if (char && e.ctrlKey) {
+            //BACKSPACE - 8, DELETE - 46
+            if ((char && e.ctrlKey) ||
+                (e.keyCode === 8 && !e.ctrlKey) ||
+                (e.keyCode === 46 && !e.ctrlKey)) {
 
                 e.preventDefault();
                 e.stopPropagation();
 
-                el.trigger('keypress');
+                el.trigger('keypress', {keyCode: e.keyCode});
             }
 
         });
 
         el.keypress(function (e) {
 
-            if (!char)
-                return;
+            var startSelection = selection.start,
+                endSelection = selection.end,
+                caretPosition = selection.start + 1;
+
+            if (!char) {
+                if (arguments[1] &&
+                    (arguments[1].keyCode === 8 || arguments[1].keyCode === 46)) {
+                    char = "";
+
+                    if (startSelection === endSelection) {
+                        startSelection -= 1;
+                        caretPosition -= 2;
+                    } else
+                        caretPosition -= 1;
+                }
+                else
+                    return;
+            }
 
             e.preventDefault();
             e.stopPropagation();
 
             if (!settings.disableCapsLock) {
 
-                var s = String.fromCharCode(e.which);
+                var s = String.fromCharCode(e.keyCode);
 
                 if (s.toUpperCase() === s && s.toLowerCase() !== s && !e.shiftKey) {
                     char = char.toUpperCase();
@@ -215,21 +235,56 @@
 
             }
 
-            var newValue = el.val().replaceAt(selection.start, selection.end, char);
+            var newValue = el.val().replaceAt(startSelection, endSelection, char),
+                newSelection = {start: caretPosition, end: caretPosition};
 
-            if (!settings.restrictRegex || !settings.restrictRegex.test(newValue)) {
-
-                el.val(el.val().replaceAt(selection.start, selection.end, char));
-
-                el.selection('setPos', {start: selection.start + 1, end: selection.start + 1});
-
-            }
+            el
+                .restrictSymbols(settings.restrictRegex, newValue, newSelection)
+                .toUpperCase(settings.upperCaseRegex, newSelection);
 
         });
+
+        $.fn.restrictSymbols = function (regex, value, selection) {
+            if (!(regex && regex.test(value))) {
+                $(this).val(value);
+                $(this).selection('setPos', selection);
+            }
+
+            return $(this);
+        };
+
+        $.fn.toUpperCase = function (regex, selection) {
+
+            var value = $(this).val();
+
+            if (regex) {
+                value = value.replace(regex, function () {
+                    var offset = arguments[arguments.length - 2],
+                        match = arguments[0];
+
+                    if (offset !== 0 ? (offset + arguments[0].length) : offset === selection.start) {
+                        return match.toUpperCase();
+                    }
+
+                    return match;
+                });
+
+                $(this).val(value);
+                $(this).selection('setPos', selection);
+            }
+
+            return $(this);
+        };
+
     };
 
     String.prototype.replaceAt = function (start, end, character) {
         return this.substr(0, start) + character + this.substr(end);
-    }
+    };
+
+    String.prototype.handleRescrictedSymbols = function (str) {
+        return this.substr(0, start) + character + this.substr(end);
+    };
+
 
 })(window.jQuery);

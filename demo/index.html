@@ -17,6 +17,10 @@
         <td><input id="ruInput" type="text"/></td>
     </tr>
     <tr>
+        <td>only numbers</td>
+        <td><input id="ruInput_numbers" type="text"/></td>
+    </tr>
+    <tr>
         <td>Textarea</td>
         <td><textarea id="ruTextarea"></textarea></td>
     </tr>
@@ -38,7 +42,11 @@
 </table>
 <hr/>
 <script>
-    $('#ruInput').type_easy({restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/});
+    $('#ruInput').type_easy({
+        restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/,
+        upperCaseRegex: /^([^- '])|[- ']([^- '])/g
+    });
+    $('#ruInput_numbers').type_easy({restrictRegex: /[^0-9]/});
     $('#ruTextarea').type_easy({disableCapsLock: true});
     $('#enInput').type_easy({lang: 'EN'});
     $('#enTextarea').type_easy({lang: 'EN'});
