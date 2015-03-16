@@ -4,7 +4,9 @@
         lang: 'DEFAULT',
         disableCapsLock: false,
         restrictRegex: '',
-        upperCaseRegex: ''
+        upperCaseRegex: '',
+        register: 'DEFAULT',
+        toLowerByShift: false
     };
 
     var ru_mapTable = {
@@ -185,42 +187,30 @@
 
         var settings = $.extend({}, defaults, options),
             el = $(this),
-            char = '';
+            char = '',
+            newValue = '';
 
         el.keydown(function (e) {
+
             char = helper.getChar(e, settings.lang);
 
-            //BACKSPACE - 8, DELETE - 46
-            if ((char && e.ctrlKey) ||
-                (e.keyCode === 8 && !e.ctrlKey) ||
-                (e.keyCode === 46 && !e.ctrlKey)) {
+            e.ctrlKey && el.trigger('keypress', {keyCode: e.keyCode});
 
-                e.preventDefault();
-                e.stopPropagation();
-
-                el.trigger('keypress', {keyCode: e.keyCode});
-            }
         });
 
         el.keypress(function (e) {
 
-            var selection = el.selection('getPos'),
-                startSelection = selection.start,
-                endSelection = selection.end,
-                caretPosition = selection.start + 1;
-
-            if (!char) {
-                if (arguments[1] && (arguments[1].keyCode === 8 || arguments[1].keyCode === 46)) {
-                    return document.execCommand(arguments[1].keyCode === 8 ? 'delete' : 'forwardDelete', false, null);
-                }
-                else if (settings.lang === 'DEFAULT' && !char)
-                    char = String.fromCharCode(e.keyCode);
-                else
-                    return;
-            }
+            if (!char)
+                return true;
 
             e.preventDefault();
             e.stopPropagation();
+
+            var selection = el.selection('getPos'),
+                startSelection = selection.start,
+                endSelection = selection.end,
+                caretPosition = selection.start + 1,
+                newSelection = {start: caretPosition, end: caretPosition};
 
             if (!settings.disableCapsLock) {
 
@@ -234,14 +224,29 @@
 
             }
 
-            var newValue = el.val().replaceAt(startSelection, endSelection, char),
-                newSelection = {start: caretPosition, end: caretPosition};
+            var newValue = el.val().replaceAt(startSelection, endSelection, char);
 
-            //todo не верно курсор ставится
-            el
-                //.toUpperCase(settings.upperCaseRegex, newSelection)
-                .restrictSymbols(settings.restrictRegex, newValue, newSelection)
+            if (settings.restrictRegex && settings.restrictRegex.test(newValue)) return;
 
+            if (caretPosition == newValue.length) {
+
+                if (settings.upperCaseRegex) {
+                    newValue = newValue.replace(settings.upperCaseRegex, function () {
+                        var offset = arguments[arguments.length - 2],
+                            match = arguments[0];
+
+                        if (offset + arguments[0].length === newSelection.start) {
+                            return match.toUpperCase();
+                        }
+
+                        return match;
+                    });
+                }
+
+            }
+
+            el.val(newValue);
+            el.selection('setPos', newSelection);
         });
 
         $.fn.restrictSymbols = function (regex, value, selection) {
