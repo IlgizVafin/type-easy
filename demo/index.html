@@ -13,16 +13,16 @@
 <table>
     <tbody>
     <tr>
-        <td>Input</td>
         <td><input id="ruInput" type="text"/></td>
+        <td>special symbols: "-", " ", "'". CAPS LOCK is disabled</td>
     </tr>
     <tr>
-        <td>only numbers</td>
-        <td><input id="ruInput_numbers" type="text"/></td>
-    </tr>
-    <tr>
-        <td>Textarea</td>
         <td><textarea id="ruTextarea"></textarea></td>
+        <td>special symbols: "-", " ", "'", "№", "/". UPPER CASE (SHIFT - LOWER CASE)</td>
+    </tr>
+    <tr>
+        <td><input id="ruSpecInput" type="text"/></td>
+        <td>only spec symbols: "@", "#", ".", "/", "_"</td>
     </tr>
     </tbody>
 </table>
@@ -31,30 +31,100 @@
 <table>
     <tbody>
     <tr>
-        <td>Input</td>
         <td><input id="enInput" type="text"/></td>
+        <td>special symbols: "-", " ", "'". CAPS LOCK is disabled</td>
     </tr>
     <tr>
-        <td>Textarea</td>
         <td><textarea id="enTextarea"></textarea></td>
+        <td>special symbols: "-", " ", "'", "№", "/". UPPER CASE (SHIFT - LOWER CASE)</td>
+    </tr>
+    <tr>
+        <td><input id="enSpecInput" type="text"/></td>
+        <td>only spec symbols: "@", "#", ".", "/", "_"</td>
+    </tr>
+    </tbody>
+</table>
+<hr/>
+<p>RU and EN</p>
+<table>
+    <tbody>
+    <tr>
+        <td><input id="multiInput" type="text"/></td>
+        <td>special symbols: "-", " ", "'". CAPS LOCK is disabled</td>
+    </tr>
+    <tr>
+        <td><textarea id="multiTextarea"></textarea></td>
+        <td>special symbols: "-", " ", "'", "№", "/". UPPER CASE (SHIFT - LOWER CASE)</td>
+    </tr>
+    <tr>
+        <td><input id="multiSpecInput" type="text"/></td>
+        <td>only spec symbols: "@", "#", ".", "/", "_"</td>
+    </tr>
+    </tbody>
+</table>
+<hr/>
+<p>Only numbers</p>
+<table>
+    <tbody>
+    <tr>
+        <td><input id="numbersInput" type="text"/></td>
     </tr>
     </tbody>
 </table>
 <hr/>
 <script>
     $('#ruInput').type_easy({
-        lang: 'RU',
-        restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/,
+        language: 'RU',
+        capsLockOff: true,
+        restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я]|([- '])\1/g,
         upperCaseRegex: /^([^- '])|[- ']([^- '])/g
     });
-    $('#ruInput_numbers').type_easy({restrictRegex: /[^0-9]/, lang: 'RU'});
     $('#ruTextarea').type_easy({
-        disableCapsLock: true,
-        restrictRegex: /^[- ']|[^- 'а-яА-Я]|([- '])\1/,
+        language: 'RU',
+        register: "UPPER_CASE",
+        lowerCaseByShift: true,
+        restrictRegex: /^[- '№\/]|[^- '№\/ёЁа-яА-Я]|([- '№\/])\1/g,
+        upperCaseRegex: /^([^- '№\/])|[- '№\/]([^- '№\/])/g
+    });
+    $('#ruSpecInput').type_easy({
+        language: 'RU',
+        restrictRegex: /[^@#.\/_]/g
+    });
+    $('#enInput').type_easy({
+        language: 'EN',
+        capsLockOff: true,
+        restrictRegex: /^[- ']|[^- 'a-zA-Z]|([- '])\1/g,
         upperCaseRegex: /^([^- '])|[- ']([^- '])/g
     });
-    $('#enInput').type_easy({lang: 'EN'});
-    $('#enTextarea').type_easy({lang: 'EN'});
+    $('#enTextarea').type_easy({
+        language: 'EN',
+        register: "UPPER_CASE",
+        lowerCaseByShift: true,
+        restrictRegex: /^[- '№\/]|[^- '№\/a-zA-Z]|([- '№\/])\1/g,
+        upperCaseRegex: /^([^- '№\/])|[- '№\/]([^- '№\/])/g
+    });
+    $('#enSpecInput').type_easy({
+        language: 'EN',
+        restrictRegex: /[^@#.\/_]/g
+    });
+    $('#multiInput').type_easy({
+        capsLockOff: true,
+        restrictRegex: /^[- ']|[^- 'ёЁа-яА-Яa-zA-Z]|([- '])\1/g,
+        upperCaseRegex: /^([^- '])|[- ']([^- '])/g
+    });
+    $('#multiTextarea').type_easy({
+        register: "UPPER_CASE",
+        lowerCaseByShift: true,
+        restrictRegex: /^[- '№\/]|[^- '№\/ёЁа-яА-Яa-zA-Z]|([- '№\/])\1/g,
+        upperCaseRegex: /^([^- '№\/])|[- '№\/]([^- '№\/])/g
+    });
+    $('#multiSpecInput').type_easy({
+        language: 'RU',
+        restrictRegex: /[^@#.\/_]/g
+    });
+    $('#numbersInput').type_easy({
+        restrictRegex: /[^0-9]/g
+    });
 </script>
 </body>
 </html>

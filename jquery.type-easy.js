@@ -1,12 +1,12 @@
 (function ($) {
 
     var defaults = {
-        lang: 'DEFAULT',
-        disableCapsLock: false,
+        language: 'DEFAULT',//RU/EN
+        capsLockOff: false,
         restrictRegex: '',
         upperCaseRegex: '',
-        register: 'DEFAULT',
-        toLowerByShift: false
+        register: 'DEFAULT',//UPPER_CASE/LOWER_CASE
+        lowerCaseByShift: false
     };
 
     var ru_mapTable = {
@@ -20,17 +20,11 @@
         73: 'ш',
         79: 'щ',
         80: 'з',
-        219: {
-            default: 'х',
-            ctrl: '['
-        },
-        221: {
-            default: 'ъ',
-            ctrl: ']'
-        },
+        219: 'х',
+        221: 'ъ',
         220: {
-            default: '\\',
-            shift: '|'
+            'default': '\\',
+            shift: '/'
         },
         65: 'ф',
         83: 'ы',
@@ -56,11 +50,18 @@
         66: 'и',
         78: 'т',
         77: 'ь',
-        188: 'б',
-        190: 'ю',
+        188: {
+            default: 'б',
+            ctrl: ','
+        },
+        190: {
+            default: 'ю',
+            ctrl: '.'
+        },
         191: {
             default: '.',
-            shift: ','
+            shift: ',',
+            ctrl: '/'
         },
         192: 'ё',
         49: {
@@ -69,15 +70,18 @@
         },
         50: {
             default: '2',
-            shift: '"'
+            shift: '"',
+            ctrl: '@'
         },
         51: {
             default: '3',
-            shift: '№'
+            shift: '№',
+            ctrl: '#'
         },
         52: {
             default: '4',
-            shift: ';'
+            shift: ';',
+            ctrl: '$'
         },
         53: {
             default: '5',
@@ -85,11 +89,13 @@
         },
         54: {
             default: '6',
-            shift: ':'
+            shift: ':',
+            ctrl: '^'
         },
         55: {
             default: '7',
-            shift: '?'
+            shift: '?',
+            ctrl: '&'
         },
         56: {
             default: '8',
@@ -133,57 +139,203 @@
         32: ' '
     };
 
-    //todo map Table for EN layout
     var en_mapTable = {
-        '190': {
+        81: 'q',
+        87: 'w',
+        69: 'e',
+        82: 'r',
+        84: 't',
+        89: 'y',
+        85: 'u',
+        73: 'i',
+        79: 'o',
+        80: 'p',
+        219: {
+            default: '[',
+            shift: '{'
+        },
+        221: {
+            default: ']',
+            shift: '}'
+        },
+        220: {
+            'default': '\\',
+            shift: '|'
+        },
+        65: 'a',
+        83: 's',
+        68: 'd',
+        70: 'f',
+        71: 'g',
+        72: 'h',
+        74: 'j',
+        75: 'k',
+        76: 'l',
+        186: {
+            default: ';',
+            shift: ':'
+        },
+        222: {
+            default: '\'',
+            ctrl: '\'',
+            shift: '"'
+        },
+        90: 'z',
+        88: 'x',
+        67: 'c',
+        86: 'v',
+        66: 'b',
+        78: 'n',
+        77: 'm',
+        188: {
+            default: ',',
+            shift: '<',
+            ctrl: ','
+        },
+        190: {
             default: '.',
-            shift: '>'
+            shift: '>',
+            ctrl: '.'
+        },
+        191: {
+            default: '/',
+            shift: '?',
+            ctrl: '/'
+        },
+        192: {
+            default: '`',
+            shift: '~'
+        },
+        49: {
+            default: '1',
+            shift: '!'
+        },
+        50: {
+            default: '2',
+            shift: '@',
+            ctrl: '"'
+        },
+        51: {
+            default: '3',
+            shift: '#',
+            ctrl: '№'
+        },
+        52: {
+            default: '4',
+            shift: '$',
+            ctrl: ';'
+        },
+        53: {
+            default: '5',
+            shift: '%'
+        },
+        54: {
+            default: '6',
+            shift: '^',
+            ctrl: ':'
+        },
+        55: {
+            default: '7',
+            shift: '&',
+            ctrl: '?'
+        },
+        56: {
+            default: '8',
+            shift: '*'
+        },
+        57: {
+            default: '9',
+            shift: '('
+        },
+        48: {
+            default: '0',
+            shift: ')'
+        },
+        189: {
+            default: '-',
+            shift: '_'
+        },
+        187: {
+            default: '=',
+            shift: '+'
+        },
+
+        //num keyboard
+        96: '0',
+        97: '1',
+        98: '2',
+        99: '3',
+        100: '4',
+        101: '5',
+        102: '6',
+        103: '7',
+        104: '8',
+        105: '9',
+        111: '/',
+        106: '*',
+        109: '-',
+        107: '+',
+        110: '.',
+
+        //space
+        32: ' '
+    };
+
+    var default_mapTable = {
+        186: {
+            ctrl: ';'
+        },
+        222: {
+            ctrl: '\''
+        },
+        188: {
+            ctrl: ','
+        },
+        190: {
+            ctrl: '.'
+        },
+        191: {
+            ctrl: '/'
         }
     };
 
     var helper = {
-        $parseMapTable: function (keyCode, ctrlKey, shiftKey, mapTable) {
+        $parseMapTable: function (e, mapTable) {
 
-            var mapObj = mapTable[keyCode];
+            var mapObj = mapTable[e.keyCode];
 
             if (!mapObj)
                 return;
 
-            if (ctrlKey) {
+            if (e.ctrlKey) {
                 return mapObj.ctrl;
-            } else if (shiftKey) {
-                return mapObj.shift || (mapObj.default ? mapObj.default.toUpperCase() : mapObj.toUpperCase());
+            } else if (e.shiftKey) {
+                if (mapObj.shift)
+                    return mapObj.shift;
+                if (mapObj.default)
+                    return mapObj.default.toUpperCase();
+                if (typeof mapObj == "string")
+                    return mapObj.toUpperCase();
+
+                return null;
             } else {
-                return mapObj.default || mapObj;
+                if (mapObj.default) return mapObj.default;
+                else if (typeof mapObj == "string") return mapObj;
             }
-
         },
-        getChar: function (event, lang) {
-
-            var mapTable = {};
-
+        getChar: function (e, lang) {
             switch (lang) {
                 case 'RU':
-                    mapTable = ru_mapTable;
-                    break;
+                    return helper.$parseMapTable(e, ru_mapTable);
                 case 'EN':
-                    mapTable = en_mapTable;
-                    break;
+                    return helper.$parseMapTable(e, en_mapTable);
                 default:
-                    switch (event.keyCode) {
-                        case 222:
-                            if (event.ctrlKey)
-                                return '\'';
-                            break;
-                    }
-                    break;
+                    return helper.$parseMapTable(e, default_mapTable);
             }
-
-            return helper.$parseMapTable(event.keyCode, event.ctrlKey, event.shiftKey, mapTable);
         }
     };
 
-    $.fn.type_easy = function (options) {
+    $.fn.type_easy = function (options, callback) {
 
         var settings = $.extend({}, defaults, options),
             el = $(this),
@@ -191,16 +343,20 @@
 
         el.keydown(function (e) {
 
-            char = helper.getChar(e, settings.lang);
-
-            e.ctrlKey && el.trigger('keypress', {keyCode: e.keyCode});
+            char = helper.getChar(e, settings.language);
+            if (e.ctrlKey && char) {
+                el.trigger('keypress', e);
+                return false;
+            }
 
         });
 
         el.keypress(function (e) {
 
-            if (!char)
-                return true;
+            if (settings.language === "DEFAULT" && !char)
+                char = String.fromCharCode(e.keyCode);
+
+            if (!char) return true;
 
             e.preventDefault();
             e.stopPropagation();
@@ -211,7 +367,7 @@
                 caretPosition = selection.start + 1,
                 newSelection = {start: caretPosition, end: caretPosition};
 
-            if (!settings.disableCapsLock) {
+            if (!settings.capsLockOff) {
 
                 var s = String.fromCharCode(e.keyCode);
 
@@ -223,9 +379,35 @@
 
             }
 
+            if (settings.register == "UPPER_CASE") {
+                char = char.toUpperCase();
+            } else if (settings.register == "LOWER_CASE") {
+                char = char.toLowerCase();
+            }
+
+            if (settings.lowerCaseByShift && e.shiftKey) {
+                char = char.toLowerCase();
+            }
+
             var newValue = el.val().replaceAt(startSelection, endSelection, char);
 
-            if (settings.restrictRegex && settings.restrictRegex.test(newValue)) return;
+            if (settings.restrictRegex) {
+
+                var tempArr,
+                    restrict = false,
+                    regex = new RegExp(settings.restrictRegex.source, 'g');
+
+                while ((tempArr = regex.exec(newValue)) != null && !restrict) {
+
+                    if (regex.lastIndex === caretPosition ||
+                        tempArr.index === startSelection)
+                        restrict = true;
+
+                }
+
+                if (restrict)
+                    return false;
+            }
 
             if (caretPosition === newValue.length) {
 
@@ -233,6 +415,8 @@
                     newValue = newValue.replace(settings.upperCaseRegex, function () {
                         var offset = arguments[arguments.length - 2],
                             match = arguments[0];
+
+                        if (settings.lowerCaseByShift && e.shiftKey) return match;
 
                         if (offset + arguments[0].length === newSelection.start) {
                             return match.toUpperCase();
@@ -246,7 +430,12 @@
 
             el.val(newValue);
             el.selection('setPos', newSelection);
+
+            if ($.isFunction(callback))
+                callback(newValue);
         });
+
+        return el.unbind;
     };
 
     String.prototype.replaceAt = function (start, end, character) {
