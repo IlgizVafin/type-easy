@@ -187,8 +187,7 @@
 
         var settings = $.extend({}, defaults, options),
             el = $(this),
-            char = '',
-            newValue = '';
+            char = '';
 
         el.keydown(function (e) {
 
@@ -228,7 +227,7 @@
 
             if (settings.restrictRegex && settings.restrictRegex.test(newValue)) return;
 
-            if (caretPosition == newValue.length) {
+            if (caretPosition === newValue.length) {
 
                 if (settings.upperCaseRegex) {
                     newValue = newValue.replace(settings.upperCaseRegex, function () {
@@ -248,49 +247,10 @@
             el.val(newValue);
             el.selection('setPos', newSelection);
         });
-
-        $.fn.restrictSymbols = function (regex, value, selection) {
-            if (!(regex && regex.test(value))) {
-                $(this).val(value);
-                $(this).selection('setPos', selection);
-            }
-
-            return $(this);
-        };
-
-        $.fn.toUpperCase = function (regex, selection) {
-
-            var value = $(this).val();
-
-            if (regex) {
-
-                value = value.replace(regex, function () {
-                    var offset = arguments[arguments.length - 2],
-                        match = arguments[0];
-
-                    //todo для offset == 0 не верно
-                    if (offset !== 0 ? (offset + arguments[0].length) : offset === selection.start) {
-                        return match.toUpperCase();
-                    }
-
-                    return match;
-                });
-
-                $(this).val(value);
-            }
-
-            return $(this);
-        };
-
     };
 
     String.prototype.replaceAt = function (start, end, character) {
         return this.substr(0, start) + character + this.substr(end);
     };
-
-    String.prototype.handleRescrictedSymbols = function (str) {
-        return this.substr(0, start) + character + this.substr(end);
-    };
-
 
 })(window.jQuery);
