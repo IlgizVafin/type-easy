@@ -441,6 +441,14 @@
                 callback(el.val());
         });
 
+        el.on('paste', function (e) {
+            e.preventDefault();
+        });
+
+        el.on('dragover', function (e) {
+            e.preventDefault();
+        });
+
         return el.unbind;
     };
 
