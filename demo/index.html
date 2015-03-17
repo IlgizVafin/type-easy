@@ -77,14 +77,14 @@
         language: 'RU',
         capsLockOff: true,
         restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я]|([- '])\1/g,
-        upperCaseRegex: /^([^- '])|[- ']([^- '])/g
+        upperCaseRegex: /^[^- ']|[- '][^- ']/g
     });
     $('#ruTextarea').type_easy({
         language: 'RU',
         register: "UPPER_CASE",
         lowerCaseByShift: true,
         restrictRegex: /^[- '№\/]|[^- '№\/ёЁа-яА-Я]|([- '№\/])\1/g,
-        upperCaseRegex: /^([^- '№\/])|[- '№\/]([^- '№\/])/g
+        upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g
     });
     $('#ruSpecInput').type_easy({
         language: 'RU',
@@ -94,14 +94,14 @@
         language: 'EN',
         capsLockOff: true,
         restrictRegex: /^[- ']|[^- 'a-zA-Z]|([- '])\1/g,
-        upperCaseRegex: /^([^- '])|[- ']([^- '])/g
+        upperCaseRegex: /^[^- ']|[- '][^- ']/g
     });
     $('#enTextarea').type_easy({
         language: 'EN',
         register: "UPPER_CASE",
         lowerCaseByShift: true,
         restrictRegex: /^[- '№\/]|[^- '№\/a-zA-Z]|([- '№\/])\1/g,
-        upperCaseRegex: /^([^- '№\/])|[- '№\/]([^- '№\/])/g
+        upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g
     });
     $('#enSpecInput').type_easy({
         language: 'EN',
@@ -110,13 +110,13 @@
     $('#multiInput').type_easy({
         capsLockOff: true,
         restrictRegex: /^[- ']|[^- 'ёЁа-яА-Яa-zA-Z]|([- '])\1/g,
-        upperCaseRegex: /^([^- '])|[- ']([^- '])/g
+        upperCaseRegex: /^[^- ']|[- '][^- ']/g
     });
     $('#multiTextarea').type_easy({
         register: "UPPER_CASE",
         lowerCaseByShift: true,
         restrictRegex: /^[- '№\/]|[^- '№\/ёЁа-яА-Яa-zA-Z]|([- '№\/])\1/g,
-        upperCaseRegex: /^([^- '№\/])|[- '№\/]([^- '№\/])/g
+        upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g
     });
     $('#multiSpecInput').type_easy({
         restrictRegex: /[^@#.\/_]/g
