@@ -432,7 +432,13 @@
             el.selection('setPos', newSelection);
 
             if ($.isFunction(callback))
-                callback(newValue);
+                callback(el.val());
+
+        });
+
+        el.bind('input propertychange', function () {
+            if ($.isFunction(callback))
+                callback(el.val());
         });
 
         return el.unbind;
