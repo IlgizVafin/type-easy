@@ -356,9 +356,11 @@
             if (settings.language === "DEFAULT" && !char)
                 char = String.fromCharCode(e.keyCode);
 
-            if (!char ||
-                /[\x00-\x7F]/g.test(char))
+            if (!char)
                 return true;
+
+            if (/[^\x20-\x7E]/.test(char))
+                return false;
 
             e.preventDefault();
             e.stopPropagation();
