@@ -282,6 +282,15 @@
     };
 
     var default_mapTable = {
+        219: {
+            ctrl: '['
+        },
+        220: {
+            ctrl: '\\'
+        },
+        221: {
+            ctrl: ']'
+        },
         186: {
             ctrl: ';'
         },
@@ -358,9 +367,6 @@
 
             if (!char)
                 return true;
-
-            if (/[^\x20-\x7E]/.test(char))
-                return false;
 
             e.preventDefault();
             e.stopPropagation();
