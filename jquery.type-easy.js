@@ -459,7 +459,7 @@
             e.preventDefault();
         });
 
-        return el.unbind;
+        return el;
     };
 
     String.prototype.replaceAt = function (start, end, character) {
