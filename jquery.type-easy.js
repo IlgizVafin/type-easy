@@ -380,7 +380,7 @@
             if (settings.language === "DEFAULT" && !char)
                 char = String.fromCharCode(e.keyCode);
 
-            if (!char)
+            if (!char || /^(13)$/.test(e.keyCode))
                 return true;
 
             e.preventDefault();
