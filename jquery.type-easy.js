@@ -10,7 +10,7 @@
     };
 
     var moduleSettings = {
-        'restrictRegex': /[^\s\w\dёЁа-яА-Я`~!@#$%^&*()_+-={[\]}:;"'\\|<,>.?/№]+/g
+        'restrictRegex': "[^\s\w\dёЁа-яА-Я`~!@#$%^&*()_+-={}[\]:;\"'\\|<,>.?/№]+"
     };
 
     var ru_mapTable = {
@@ -387,7 +387,7 @@
             if (!char || /^(13)$/.test(e.keyCode))
                 return true;
 
-            if (moduleSettings.restrictRegex.test(char))
+            if (new RegExp(moduleSettings.restrictRegex, 'g').test(char))
                 return;
 
             e.preventDefault();
