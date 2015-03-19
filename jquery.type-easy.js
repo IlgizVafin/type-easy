@@ -9,6 +9,10 @@
         lowerCaseByShift: false
     };
 
+    var moduleSettings = {
+        'restrictRegex': '/[^\s\w\dёЁа-яА-Я`~!@#$%^&*()_+-={[\]}:;"\'\\|<,>.?/№]+/g'
+    };
+
     var ru_mapTable = {
         81: 'й',
         87: 'ц',
@@ -382,6 +386,9 @@
 
             if (!char || /^(13)$/.test(e.keyCode))
                 return true;
+
+            if (moduleSettings.restrictRegex.test(char))
+                return;
 
             e.preventDefault();
             e.stopPropagation();
