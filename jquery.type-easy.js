@@ -10,7 +10,7 @@
     };
 
     var moduleSettings = {
-        'restrictRegex': '/[^\s\w\dёЁа-яА-Я`~!@#$%^&*()_+-={[\]}:;"\'\\|<,>.?/№]+/g'
+        'restrictRegex': /[^\s\w\dёЁа-яА-Я`~!@#$%^&*()_+-={[\]}:;"'\\|<,>.?/№]+/g
     };
 
     var ru_mapTable = {
