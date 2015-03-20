@@ -36,7 +36,7 @@
     </tr>
     <tr>
         <td><textarea id="enTextarea"></textarea></td>
-        <td>special symbols: "-", " ", "'", "№", "/". UPPER CASE (SHIFT - LOWER CASE)</td>
+        <td>special symbols: "-", " ", "'", "№", "/", "enter". UPPER CASE (SHIFT - LOWER CASE)</td>
     </tr>
     <tr>
         <td><input id="enSpecInput" type="text"/></td>
@@ -100,7 +100,7 @@
         language: 'EN',
         register: "UPPER_CASE",
         lowerCaseByShift: true,
-        restrictRegex: /^[- '№\/]|[^- '№\/a-zA-Z]|([- '№\/])\1/g,
+        restrictRegex: /^[-'№\/ \r\n]|[^- \r\n'№\/a-zA-Z]|([- \r\n'№\/])\1|[\r\n]{2,}/g,
         upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g
     });
     $('#enSpecInput').type_easy({
@@ -119,7 +119,7 @@
         upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g
     });
     $('#multiSpecInput').type_easy({
-        //restrictRegex: /[^@#.\/_]/g
+        restrictRegex: /[^@#.\/_]/g
     });
     $('#numbersInput').type_easy({
         restrictRegex: /[^0-9]/g

@@ -383,9 +383,6 @@
 
             char = char || String.fromCharCode(e.keyCode);
 
-            if (!char || /^(13)$/.test(e.keyCode))
-                return true;
-
             if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char))
                 return false;
 
