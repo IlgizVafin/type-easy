@@ -381,7 +381,7 @@
 
         el.keypress(function (e) {
 
-            if (settings.language === "DEFAULT" && !char)
+            if (/*settings.language === "DEFAULT" && */!char)
                 char = String.fromCharCode(e.keyCode);
 
             if (!char || /^(13)$/.test(e.keyCode))
