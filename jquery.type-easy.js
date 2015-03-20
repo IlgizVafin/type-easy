@@ -10,7 +10,7 @@
     };
 
     var moduleSettings = {
-        'restrictRegex': "[^\\s/\\w/\\dёЁа-яА-Я`~!@#$%^&*()_+-={}[/\\]:;\"'\\|<,>.?/№]+"
+        'restrictRegex': "[^\\s/\\w/\\dёЁа-яА-Я`~!@#$%^&*()_+-={}[/\\]:;\"'\\\\|<,>.?/№]+"
     };
 
     var ru_mapTable = {
@@ -386,7 +386,7 @@
             if (!char || /^(13)$/.test(e.keyCode))
                 return true;
 
-            if (new RegExp(moduleSettings.restrictRegex, 'g').test(char))
+            if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char))
                 return false;
 
             e.preventDefault();
