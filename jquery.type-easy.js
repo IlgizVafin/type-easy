@@ -10,7 +10,7 @@
     };
 
     var moduleSettings = {
-        'restrictRegex': "[^\s\w\dёЁа-яА-Я`~!@#$%^&*()_+-={}[\]:;\"'\\|<,>.?/№]+"
+        'restrictRegex': "[^\\s/\\w/\\dёЁа-яА-Я`~!@#$%^&*()_+-={}[/\\]:;\"'\\|<,>.?/№]+"
     };
 
     var ru_mapTable = {
@@ -381,14 +381,13 @@
 
         el.keypress(function (e) {
 
-            if (/*settings.language === "DEFAULT" && */!char)
-                char = String.fromCharCode(e.keyCode);
+            char = char || String.fromCharCode(e.keyCode);
 
             if (!char || /^(13)$/.test(e.keyCode))
                 return true;
 
             if (new RegExp(moduleSettings.restrictRegex, 'g').test(char))
-                return;
+                return false;
 
             e.preventDefault();
             e.stopPropagation();
@@ -401,11 +400,9 @@
 
             if (!settings.capsLockOff) {
 
-                var s = String.fromCharCode(e.keyCode);
-
-                if (s.toUpperCase() === s && s.toLowerCase() !== s && !e.shiftKey) {
+                if (char.toUpperCase() === char && char.toLowerCase() !== char && !e.shiftKey) {
                     char = char.toUpperCase();
-                } else if (s.toUpperCase() !== s && s.toLowerCase() === s && e.shiftKey) {
+                } else if (char.toUpperCase() !== char && char.toLowerCase() === char && e.shiftKey) {
                     char = char.toLowerCase();
                 }
 
