@@ -6,7 +6,8 @@
         restrictRegex: '',
         upperCaseRegex: '',
         register: 'DEFAULT',//UPPER_CASE/LOWER_CASE
-        lowerCaseByShift: false
+        lowerCaseByShift: false,
+        debounce: 0
     };
 
     var moduleSettings = {
@@ -367,7 +368,12 @@
 
         var settings = $.extend({}, defaults, options),
             el = $(this),
-            char = '';
+            char,
+            buffer = {
+                value: '',
+                tempValue: '',
+                index: 0
+            };
 
         el.keydown(function (e) {
 
@@ -390,9 +396,9 @@
             e.stopPropagation();
 
             var selection = el.selection('getPos'),
-                startSelection = selection.start,
-                endSelection = selection.end,
-                caretPosition = selection.start + 1,
+                startSelection = selection.start + buffer.tempValue.length,
+                endSelection = buffer.tempValue.length > 0 ? startSelection : selection.end,
+                caretPosition = startSelection + 1,
                 newSelection = {start: caretPosition, end: caretPosition};
 
             if (!settings.capsLockOff) {
@@ -415,7 +421,9 @@
                 char = char.toLowerCase();
             }
 
-            var newValue = el.val().replaceAt(startSelection, endSelection, char);
+            buffer.value = buffer.value || el.val();
+
+            var newValue = buffer.value.replaceAt(startSelection, endSelection, char);
 
             if (settings.restrictRegex) {
 
@@ -454,16 +462,18 @@
 
             }
 
-            if ($.isFunction(parseFn)) {
-                newValue = parseFn(newValue);
-                newSelection = {start: newValue.length - 1, end: newValue.length - 1};
-            }
+            buffer.tempValue += char;
+            buffer.value = newValue;
 
-            el.val(newValue);
-            el.selection('setPos', newSelection);
-
-            if ($.isFunction(valueChangedFn))
-                valueChangedFn(el.val());
+            settings.debounce ?
+                debounceUpdateFn(buffer.value, {
+                    start: selection.start,
+                    end: selection.start + buffer.tempValue.length
+                }, parseFn) :
+                updateValue(buffer.value, {
+                    start: selection.start,
+                    end: selection.start + buffer.tempValue.length
+                }, parseFn);
 
         });
 
@@ -472,21 +482,60 @@
             if ($.isFunction(valueChangedFn))
                 valueChangedFn(el.val());
 
+            buffer.value = "";
+            buffer.tempValue = "";
+
         });
 
-        el.on('paste', function (e) {
+        el.on('paste dragover', function (e) {
             e.preventDefault();
         });
 
-        el.on('dragover', function (e) {
-            e.preventDefault();
-        });
+        function updateValue(value, selection, parseFn) {
+            selection = {start: selection.end, end: selection.end};
+
+            if ($.isFunction(parseFn)) {
+
+                var parsedValue = parseFn(value, selection);
+
+                if (parsedValue !== null && parsedValue !== undefined) {
+                    value = parsedValue.value;
+                    selection = {start: parsedValue.start || 0, end: parsedValue.end || 0};
+                }
+            }
+
+            el.val(value);
+            el.selection('setPos', selection);
+
+            if ($.isFunction(valueChangedFn))
+                valueChangedFn(el.val());
+
+            buffer.value = "";
+            buffer.tempValue = "";
+        }
+
+        var debounceUpdateFn = debounce(updateValue, settings.debounce, !settings.debounce);
 
         return el;
     };
 
     String.prototype.replaceAt = function (start, end, character) {
         return this.substr(0, start) + character + this.substr(end);
+    };
+
+    function debounce(func, wait, immediate) {
+        var timeout;
+        return function () {
+            var context = this, args = arguments;
+            var later = function () {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
     };
 
 })(window.jQuery);
