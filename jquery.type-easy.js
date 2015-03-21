@@ -7,7 +7,10 @@
         upperCaseRegex: '',
         register: 'DEFAULT',//UPPER_CASE/LOWER_CASE
         lowerCaseByShift: false,
-        debounce: 0
+        debounce: {
+            delay: 0,
+            ifRegex: null
+        }
     };
 
     var moduleSettings = {
@@ -373,7 +376,8 @@
                 value: '',
                 tempValue: '',
                 index: 0
-            };
+            },
+            needDebounce = settings.debounce && settings.debounce.ifRegex instanceof RegExp;
 
         el.keydown(function (e) {
 
@@ -465,7 +469,7 @@
             buffer.tempValue += char;
             buffer.value = newValue;
 
-            settings.debounce ?
+            needDebounce && settings.debounce.ifRegex.test(buffer.tempValue) ?
                 debounceUpdateFn(buffer.value, {
                     start: selection.start,
                     end: selection.start + buffer.tempValue.length
@@ -516,7 +520,7 @@
             buffer.tempValue = "";
         }
 
-        var debounceUpdateFn = debounce(updateValue, settings.debounce, !settings.debounce);
+        var debounceUpdateFn = debounce(updateValue, settings.debounce.delay, !needDebounce);
 
         return el;
     };

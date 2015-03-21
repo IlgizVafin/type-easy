@@ -117,14 +117,20 @@
         lowerCaseByShift: true,
         restrictRegex: /^[- '№\/]|[^- '№\/ёЁа-яА-Яa-zA-Z]|([- '№\/])\1/g,
         upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g,
-        debounce: 350
+        debounce: {
+            delay: 350,
+            ifRegex: /[HI]+/
+        }
     });
     $('#multiSpecInput').type_easy({
         restrictRegex: /[^@#.\/_]/g
     });
     $('#numbersInput').type_easy({
         restrictRegex: /[^0-9]/g,
-        debounce: 1000
+        debounce: {
+            delay: 350,
+            ifRegex: /\d+/
+        }
     });
 </script>
 </body>
