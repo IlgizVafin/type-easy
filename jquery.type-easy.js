@@ -363,7 +363,7 @@
         }
     };
 
-    $.fn.type_easy = function (options, callback) {
+    $.fn.type_easy = function (options, valueChangedFn, parseFn) {
 
         var settings = $.extend({}, defaults, options),
             el = $(this),
@@ -454,17 +454,24 @@
 
             }
 
+            if ($.isFunction(parseFn)) {
+                newValue = parseFn(newValue);
+                newSelection = {start: newValue.length - 1, end: newValue.length - 1};
+            }
+
             el.val(newValue);
             el.selection('setPos', newSelection);
 
-            if ($.isFunction(callback))
-                callback(el.val());
+            if ($.isFunction(valueChangedFn))
+                valueChangedFn(el.val());
 
         });
 
         el.bind('input propertychange', function () {
-            if ($.isFunction(callback))
-                callback(el.val());
+
+            if ($.isFunction(valueChangedFn))
+                valueChangedFn(el.val());
+
         });
 
         el.on('paste', function (e) {
