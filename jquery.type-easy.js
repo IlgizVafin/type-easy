@@ -492,7 +492,7 @@
         });
 
         function updateValue(value, selection, parseFn) {
-            selection = {start: selection.end, end: selection.end};
+            var newSelection;
 
             if ($.isFunction(parseFn)) {
 
@@ -500,12 +500,14 @@
 
                 if (parsedValue !== null && parsedValue !== undefined) {
                     value = parsedValue.value;
-                    selection = {start: parsedValue.start || 0, end: parsedValue.end || 0};
+                    newSelection = {start: parsedValue.start || 0, end: parsedValue.end || 0};
                 }
             }
 
+            newSelection = newSelection || {start: selection.end, end: selection.end};
+
             el.val(value);
-            el.selection('setPos', selection);
+            el.selection('setPos', newSelection);
 
             if ($.isFunction(valueChangedFn))
                 valueChangedFn(el.val());
