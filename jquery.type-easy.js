@@ -510,8 +510,11 @@
 
             newSelection = newSelection || {start: selection.end, end: selection.end};
 
-            el.val(value);
-            el.selection('setPos', newSelection);
+            if (el.is(':focus'))
+            {
+                el.val(value);
+                el.selection('setPos', newSelection);
+            }
 
             if ($.isFunction(valueChangedFn))
                 valueChangedFn(el.val());
