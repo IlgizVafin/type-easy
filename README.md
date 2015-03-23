@@ -27,5 +27,9 @@ capsLockOff: false,
 restrictRegex: '',
 upperCaseRegex: '',
 register: 'DEFAULT',//UPPER_CASE/LOWER_CASE
-lowerCaseByShift: false
+lowerCaseByShift: false,
+debounce: {
+    delay: 0,
+    ifRegex: null
+}
 ```
