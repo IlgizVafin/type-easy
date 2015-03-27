@@ -437,8 +437,8 @@
 
                 while ((tempArr = regex.exec(newValue)) != null && !restrict) {
 
-                    if (regex.lastIndex === caretPosition ||
-                        tempArr.index === startSelection)
+                    if (caretPosition >= tempArr.index &&
+                        caretPosition <= regex.lastIndex)
                         restrict = true;
 
                 }
@@ -510,8 +510,7 @@
 
             newSelection = newSelection || {start: selection.end, end: selection.end};
 
-            if (el.is(':focus'))
-            {
+            if (el.is(':focus')) {
                 el.val(value);
                 el.selection('setPos', newSelection);
             }
