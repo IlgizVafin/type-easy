@@ -126,7 +126,7 @@
         restrictRegex: /[^@#.\/_]/g
     });
     $('#numbersInput').type_easy({
-        restrictRegex: /[^0-9]/g,
+        restrictRegex: /[^\d]|[4-9]\d|3[2-9]|00|\d{3,}/g,
         debounce: {
             delay: 350,
             ifRegex: /\d+/

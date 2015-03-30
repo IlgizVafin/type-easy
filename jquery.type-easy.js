@@ -437,8 +437,10 @@
 
                 while ((tempArr = regex.exec(newValue)) != null && !restrict) {
 
-                    if (caretPosition >= tempArr.index &&
-                        caretPosition <= regex.lastIndex)
+                    if ((caretPosition >= tempArr.index &&
+                        caretPosition <= regex.lastIndex) ||
+                        //todo я не в силах объяснить, но, если мешаем с angularJs то происходят странные вещи.
+                        (tempArr.index === 0 && regex.lastIndex === newValue.length))
                         restrict = true;
 
                 }
