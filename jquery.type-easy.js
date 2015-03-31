@@ -497,6 +497,11 @@
             e.preventDefault();
         });
 
+        el.on('blur', function () {
+            buffer.value = "";
+            buffer.tempValue = "";
+        });
+
         function updateValue(value, selection, parseFn) {
             var newSelection;
 
