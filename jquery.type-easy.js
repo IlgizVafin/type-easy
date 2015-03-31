@@ -339,9 +339,29 @@
 
         var settings = $.extend({}, defaults, options),
             el = $(this),
-            char = '';
+            char,
+            buffer = {
+                value: '',
+                tempValue: '',
+                index: 0
+            },
+            needDebounce = settings.debounce && settings.debounce.ifRegex instanceof RegExp,
+            tempValue = {value: el.val(), selection: el.selection('getPos')};
 
         el.keydown(function (e) {
+
+            tempValue = {value: el.val(), selection: el.selection('getPos')};
+
+            if (e.ctrlKey) {
+                switch (e.keyCode) {
+                    case 89: //y
+                        stack.canRedo() && stack.redo();
+                        return false;
+                    case 90: //z
+                        stack.canUndo() && stack.undo();
+                        return false;
+                }
+            }
 
             char = helper.getChar(e, settings.language);
             if (e.ctrlKey && char) {
@@ -399,8 +419,10 @@
 
                 while ((tempArr = regex.exec(newValue)) != null && !restrict) {
 
-                    if (regex.lastIndex === caretPosition ||
-                        tempArr.index === startSelection)
+                    if ((caretPosition >= tempArr.index &&
+                        caretPosition <= regex.lastIndex) ||
+                            //todo я не в силах объяснить, но, если мешаем с angularJs то происходят странные вещи.
+                        (tempArr.index === 0 && regex.lastIndex === newValue.length))
                         restrict = true;
 
                 }
@@ -431,21 +453,116 @@
             el.val(newValue);
             el.selection('setPos', newSelection);
 
-            if ($.isFunction(callback))
-                callback(el.val());
+            if (selection.start !== selection.end || caretPosition < buffer.value.length) {
+                updateStack();
+            }
+
+            selection = {start: selection.start, end: selection.start + buffer.tempValue.length};
+
+            needDebounce && settings.debounce.ifRegex.test(buffer.tempValue) ?
+                debounceUpdateFn(buffer.value, selection, parseFn) :
+                updateValue(buffer.value, selection, parseFn);
 
         });
 
         el.bind('input propertychange', function () {
-            if ($.isFunction(callback))
-                callback(el.val());
+
+            if ($.isFunction(valueChangedFn))
+                valueChangedFn(el.val());
+
+            setDefaultState();
+            updateStack();
         });
 
-        return el.unbind;
+        el.on('paste dragover', function (e) {
+            e.preventDefault();
+        });
+
+        el.on('blur', function () {
+            setDefaultState();
+            updateStack();
+        });
+
+        function updateValue(value, selection, parseFn) {
+            var newSelection;
+
+            if ($.isFunction(parseFn)) {
+
+                var parsedValue = parseFn(value, selection);
+
+                if (parsedValue !== null && parsedValue !== undefined) {
+                    value = parsedValue.value;
+                    newSelection = {start: parsedValue.start || 0, end: parsedValue.end || 0};
+                }
+            }
+
+            newSelection = newSelection || {start: selection.end, end: selection.end};
+
+            if (el.is(':focus')) {
+                el.val(value);
+                el.selection('setPos', newSelection);
+            }
+
+            if ($.isFunction(valueChangedFn))
+                valueChangedFn(el.val());
+
+            buffer.value = "";
+            buffer.tempValue = "";
+        }
+
+        var debounceUpdateFn = debounce(updateValue, settings.debounce.delay, !needDebounce);
+
+        function setDefaultState() {
+            buffer.value = "";
+            buffer.tempValue = "";
+        }
+
+        function updateStack() {
+            var newValue = {value: el.val(), selection: el.selection('getPos')};
+            if (newValue.value !== tempValue.value)
+                stack.execute(new EditCommand(el, tempValue, newValue));
+        }
+
+        return el;
     };
 
     String.prototype.replaceAt = function (start, end, character) {
         return this.substr(0, start) + character + this.substr(end);
     };
+
+    function debounce(func, wait, immediate) {
+        var timeout;
+        return function () {
+            var context = this, args = arguments;
+            var later = function () {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    };
+
+    var stack = new Undo.Stack(),
+        EditCommand = Undo.Command.extend({
+            constructor: function (element, oldValue, newValue) {
+                this.element = element;
+                this.oldValue = oldValue;
+                this.newValue = newValue;
+            },
+            execute: function () {
+
+            },
+            undo: function () {
+                this.element.val(this.oldValue.value);
+                this.element.selection('setPos', this.oldValue.selection);
+            },
+            redo: function () {
+                this.element.val(this.newValue.value);
+                this.element.selection('setPos', this.newValue.selection);
+            }
+        });
 
 })(window.jQuery);
