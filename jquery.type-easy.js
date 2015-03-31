@@ -394,7 +394,7 @@
             char = char || String.fromCharCode(e.keyCode);
 
             if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char))
-                return false;
+                return;
 
             e.preventDefault();
             e.stopPropagation();
