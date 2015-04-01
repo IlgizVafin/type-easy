@@ -508,7 +508,7 @@
             buffer.value = newValue;
 
             if (selection.start !== selection.end || caretPosition < buffer.value.length) {
-                updateStack();
+                stack.execute(new EditCommand(el, oldValue, {value: buffer.value, selection: newSelection}));
             }
 
             selection = {start: selection.start, end: selection.start + buffer.tempValue.length};
