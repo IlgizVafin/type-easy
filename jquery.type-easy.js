@@ -399,7 +399,7 @@
                 }
             });
 
-        updateStack(true);
+        //updateStack(true);
 
         el.keydown(function (e) {
 
