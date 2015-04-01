@@ -7,6 +7,7 @@
         upperCaseRegex: '',
         register: 'DEFAULT',//UPPER_CASE/LOWER_CASE
         lowerCaseByShift: false,
+        maxLength: -1,
         debounce: {
             delay: 0,
             ifRegex: null
@@ -485,6 +486,10 @@
                     return false;
             }
 
+            if (options.maxLength >= 0 && newValue.length > options.maxLength) {
+                return false;
+            }
+
             if (caretPosition === newValue.length) {
 
                 if (settings.upperCaseRegex) {
@@ -506,10 +511,6 @@
 
             buffer.tempValue += char;
             buffer.value = newValue;
-
-            if (selection.start !== selection.end || caretPosition < buffer.value.length) {
-                stack.execute(new EditCommand(el, oldValue, {value: buffer.value, selection: newSelection}));
-            }
 
             selection = {start: selection.start, end: selection.start + buffer.tempValue.length};
 
