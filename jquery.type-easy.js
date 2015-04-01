@@ -392,10 +392,12 @@
                 undo: function () {
                     this.element.val(this.oldValue.value);
                     this.element.selection('setPos', this.oldValue.selection);
+                    updateValue(this.oldValue.value, this.oldValue.selection, parseFn)
                 },
                 redo: function () {
                     this.element.val(this.newValue.value);
                     this.element.selection('setPos', this.newValue.selection);
+                    updateValue(this.newValue.value, this.newValue.selection, parseFn)
                 }
             });
 
