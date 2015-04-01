@@ -16,7 +16,7 @@ $('#ruInput').type_easy({
     language: 'RU',
     capsLockOff: true,
     restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я]|([- '])\1/g,
-    upperCaseRegex: /^([^- '])|[- ']([^- '])/g
+    upperCaseRegex: /^[^- ']|[- '][^- ']/g
 });
 ```
 
@@ -27,5 +27,9 @@ capsLockOff: false,
 restrictRegex: '',
 upperCaseRegex: '',
 register: 'DEFAULT',//UPPER_CASE/LOWER_CASE
-lowerCaseByShift: false
+lowerCaseByShift: false,
+debounce: {
+    delay: 0,
+    ifRegex: null
+}
 ```

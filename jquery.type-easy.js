@@ -6,7 +6,15 @@
         restrictRegex: '',
         upperCaseRegex: '',
         register: 'DEFAULT',//UPPER_CASE/LOWER_CASE
-        lowerCaseByShift: false
+        lowerCaseByShift: false,
+        debounce: {
+            delay: 0,
+            ifRegex: null
+        }
+    };
+
+    var moduleSettings = {
+        'restrictRegex': "[^\\s/\\w/\\dёЁа-яА-Я`~!@#$%^&*()_+-={}[/\\]:;\"'\\\\|<,>.?/№]+"
     };
 
     var ru_mapTable = {
@@ -24,7 +32,13 @@
         221: 'ъ',
         220: {
             'default': '\\',
-            shift: '/'
+            shift: '/',
+            ctrl: '\\'
+        },
+        226: {
+            default: '\\',
+            shift: '/',
+            ctrl: '\\'
         },
         65: 'ф',
         83: 'ы',
@@ -160,7 +174,13 @@
         },
         220: {
             'default': '\\',
-            shift: '|'
+            shift: '|',
+            ctrl: '\\'
+        },
+        226: {
+            default: '\\',
+            shift: '|',
+            ctrl: '\\'
         },
         65: 'a',
         83: 's',
@@ -282,6 +302,18 @@
     };
 
     var default_mapTable = {
+        219: {
+            ctrl: '['
+        },
+        220: {
+            ctrl: '\\'
+        },
+        226: {
+            ctrl: '\\'
+        },
+        221: {
+            ctrl: ']'
+        },
         186: {
             ctrl: ';'
         },
@@ -335,7 +367,7 @@
         }
     };
 
-    $.fn.type_easy = function (options, callback) {
+    $.fn.type_easy = function (options, valueChangedFn, parseFn) {
 
         var settings = $.extend({}, defaults, options),
             el = $(this),
@@ -346,11 +378,32 @@
                 index: 0
             },
             needDebounce = settings.debounce && settings.debounce.ifRegex instanceof RegExp,
-            tempValue = {value: el.val(), selection: el.selection('getPos')};
+            oldValue = {value: el.val(), selection: el.selection('getPos')},
+            stack = new Undo.Stack(),
+            EditCommand = Undo.Command.extend({
+                constructor: function (element, oldValue, newValue) {
+                    this.element = element;
+                    this.oldValue = oldValue;
+                    this.newValue = newValue;
+                },
+                execute: function () {
+
+                },
+                undo: function () {
+                    this.element.val(this.oldValue.value);
+                    this.element.selection('setPos', this.oldValue.selection);
+                },
+                redo: function () {
+                    this.element.val(this.newValue.value);
+                    this.element.selection('setPos', this.newValue.selection);
+                }
+            });
+
+        updateStack(true);
 
         el.keydown(function (e) {
 
-            tempValue = {value: el.val(), selection: el.selection('getPos')};
+            oldValue = {value: el.val(), selection: el.selection('getPos')};
 
             if (e.ctrlKey) {
                 switch (e.keyCode) {
@@ -373,27 +426,25 @@
 
         el.keypress(function (e) {
 
-            if (settings.language === "DEFAULT" && !char)
-                char = String.fromCharCode(e.keyCode);
+            char = char || String.fromCharCode(e.keyCode);
 
-            if (!char) return true;
+            if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char))
+                return;
 
             e.preventDefault();
             e.stopPropagation();
 
             var selection = el.selection('getPos'),
-                startSelection = selection.start,
-                endSelection = selection.end,
-                caretPosition = selection.start + 1,
+                startSelection = selection.start + buffer.tempValue.length,
+                endSelection = buffer.tempValue.length > 0 ? startSelection : selection.end,
+                caretPosition = startSelection + 1,
                 newSelection = {start: caretPosition, end: caretPosition};
 
             if (!settings.capsLockOff) {
 
-                var s = String.fromCharCode(e.keyCode);
-
-                if (s.toUpperCase() === s && s.toLowerCase() !== s && !e.shiftKey) {
+                if (char.toUpperCase() === char && char.toLowerCase() !== char && !e.shiftKey) {
                     char = char.toUpperCase();
-                } else if (s.toUpperCase() !== s && s.toLowerCase() === s && e.shiftKey) {
+                } else if (char.toUpperCase() !== char && char.toLowerCase() === char && e.shiftKey) {
                     char = char.toLowerCase();
                 }
 
@@ -409,7 +460,9 @@
                 char = char.toLowerCase();
             }
 
-            var newValue = el.val().replaceAt(startSelection, endSelection, char);
+            buffer.value = buffer.value || el.val();
+
+            var newValue = buffer.value.replaceAt(startSelection, endSelection, char);
 
             if (settings.restrictRegex) {
 
@@ -421,7 +474,6 @@
 
                     if ((caretPosition >= tempArr.index &&
                         caretPosition <= regex.lastIndex) ||
-                            //todo я не в силах объяснить, но, если мешаем с angularJs то происходят странные вещи.
                         (tempArr.index === 0 && regex.lastIndex === newValue.length))
                         restrict = true;
 
@@ -450,8 +502,8 @@
 
             }
 
-            el.val(newValue);
-            el.selection('setPos', newSelection);
+            buffer.tempValue += char;
+            buffer.value = newValue;
 
             if (selection.start !== selection.end || caretPosition < buffer.value.length) {
                 updateStack();
@@ -480,7 +532,6 @@
 
         el.on('blur', function () {
             setDefaultState();
-            updateStack();
         });
 
         function updateValue(value, selection, parseFn) {
@@ -517,10 +568,12 @@
             buffer.tempValue = "";
         }
 
-        function updateStack() {
+        function updateStack(force) {
             var newValue = {value: el.val(), selection: el.selection('getPos')};
-            if (newValue.value !== tempValue.value)
-                stack.execute(new EditCommand(el, tempValue, newValue));
+            if (newValue.value !== oldValue.value || force) {
+                var command = new EditCommand(el, oldValue, newValue);
+                stack.execute(command);
+            }
         }
 
         return el;
@@ -545,24 +598,5 @@
         };
     };
 
-    var stack = new Undo.Stack(),
-        EditCommand = Undo.Command.extend({
-            constructor: function (element, oldValue, newValue) {
-                this.element = element;
-                this.oldValue = oldValue;
-                this.newValue = newValue;
-            },
-            execute: function () {
-
-            },
-            undo: function () {
-                this.element.val(this.oldValue.value);
-                this.element.selection('setPos', this.oldValue.selection);
-            },
-            redo: function () {
-                this.element.val(this.newValue.value);
-                this.element.selection('setPos', this.newValue.selection);
-            }
-        });
 
 })(window.jQuery);
