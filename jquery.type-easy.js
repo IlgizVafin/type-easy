@@ -8,6 +8,7 @@
         register: 'DEFAULT',//UPPER_CASE/LOWER_CASE
         lowerCaseByShift: false,
         maxLength: -1,
+        undoDeep: 10,
         debounce: {
             delay: 0,
             ifRegex: null
@@ -379,7 +380,7 @@
                 index: 0
             },
             needDebounce = settings.debounce && settings.debounce.ifRegex instanceof RegExp,
-            oldValue = {value: el.val(), selection: el.selection('getPos')},
+            oldValue = {},
             stack = new Undo.Stack(),
             EditCommand = Undo.Command.extend({
                 constructor: function (element, oldValue, newValue) {
@@ -401,8 +402,6 @@
                     updateValue(this.newValue.value, this.newValue.selection, parseFn)
                 }
             });
-
-        //updateStack(true);
 
         el.keydown(function (e) {
 
@@ -514,10 +513,11 @@
 
             selection = {start: selection.start, end: selection.start + buffer.tempValue.length};
 
-            needDebounce && settings.debounce.ifRegex.test(buffer.tempValue) ?
-                debounceUpdateFn(buffer.value, selection, parseFn) :
-                updateValue(buffer.value, selection, parseFn);
-
+            if (needDebounce && settings.debounce.ifRegex.test(buffer.tempValue)) {
+                debounceUpdateFn(buffer.value, selection, parseFn, true);
+            } else {
+                updateValue(buffer.value, selection, parseFn, true);
+            }
         });
 
         el.bind('input propertychange', function () {
@@ -537,7 +537,7 @@
             setDefaultState();
         });
 
-        function updateValue(value, selection, parseFn) {
+        function updateValue(value, selection, parseFn, isUpdateStack) {
             var newSelection;
 
             if ($.isFunction(parseFn)) {
@@ -562,6 +562,9 @@
 
             buffer.value = "";
             buffer.tempValue = "";
+
+            if (isUpdateStack)
+                updateStack();
         }
 
         var debounceUpdateFn = debounce(updateValue, settings.debounce.delay, !needDebounce);
@@ -575,7 +578,16 @@
             var newValue = {value: el.val(), selection: el.selection('getPos')};
             if (newValue.value !== oldValue.value || force) {
                 var command = new EditCommand(el, oldValue, newValue);
+
                 stack.execute(command);
+
+                if (stack.commands.length > settings.undoDeep) {
+
+                    if (stack.stackPosition >= 0)
+                        stack.stackPosition--;
+
+                    stack.commands.shift();
+                }
             }
         }
 

@@ -29,6 +29,7 @@ upperCaseRegex: '',
 register: 'DEFAULT',//UPPER_CASE/LOWER_CASE
 lowerCaseByShift: false,
 maxLength: -1
+undoDeep: 10,
 debounce: {
     delay: 0,
     ifRegex: null
