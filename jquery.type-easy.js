@@ -411,16 +411,21 @@
 
             oldValue = {value: el.val(), selection: el.selection('getPos')};
 
-            if (e.ctrlKey) {
-                switch (e.keyCode) {
-                    case 89: //y
-                        stack.canRedo() && stack.redo();
-                        return false;
-                    case 90: //z
-                        stack.canUndo() && stack.undo();
-                        return false;
-                }
+            switch (e.keyCode) {
+                case 8: //BackSpace
+                    backSpace(e.ctrlKey);
+                    return false;
+                case 46: //Delete
+                    deleteSpace(e.ctrlKey);
+                    return false;
+                case 89: //y
+                    e.ctrlKey && stack.canRedo() && stack.redo();
+                    return false;
+                case 90: //z
+                    e.ctrlKey && stack.canUndo() && stack.undo();
+                    return false;
             }
+
 
             char = helper.getChar(e, settings.language);
             if (e.ctrlKey && char) {
@@ -533,7 +538,7 @@
             updateStack();
         });
 
-        el.on('paste dragover', function (e) {
+        el.on('paste dragover dragstart', function (e) {
             e.preventDefault();
         });
 
@@ -598,6 +603,46 @@
         function setSelection(selection) {
             if (el.is(':focus')) {
                 el.selection('setPos', selection);
+            }
+        }
+
+        function backSpace(ctrlKey) {
+
+            var newSelection = {},
+                newValue = '';
+
+            if (oldValue.selection.start !== oldValue.selection.end) {
+                newSelection = {start: oldValue.selection.start, end: oldValue.selection.start};
+                newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
+                updateValue(newValue, newSelection, parseFn, true)
+            } else {
+                newSelection = ctrlKey ? {start: 0, end: 0} : {
+                    start: oldValue.selection.start - 1,
+                    end: oldValue.selection.start - 1
+                };
+                newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '');
+                updateValue(newValue, newSelection, parseFn, true)
+            }
+
+            //todo на будущее реализовать
+            /* var indices = [];
+             for (var i = 0; i < oldValue.selection.start; i++) {
+             if (/\S/.test(oldValue.value[i])) indices.push(i);
+             }*/
+        }
+
+        function deleteSpace(ctrlKey) {
+            var newSelection = {},
+                newValue = '';
+
+            if (oldValue.selection.start !== oldValue.selection.end) {
+                newSelection = {start: oldValue.selection.start, end: oldValue.selection.start};
+                newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
+                updateValue(newValue, newSelection, parseFn, true)
+            } else {
+                newSelection = {start: oldValue.selection.start,end: oldValue.selection.start};
+                newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '');
+                updateValue(newValue, newSelection, parseFn, true)
             }
         }
 
