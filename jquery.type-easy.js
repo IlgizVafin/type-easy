@@ -420,10 +420,14 @@
                     return false;
                 case 89: //y
                     e.ctrlKey && stack.canRedo() && stack.redo();
-                    return false;
+                    if (e.ctrlKey)
+                        return false;
+                    break;
                 case 90: //z
                     e.ctrlKey && stack.canUndo() && stack.undo();
-                    return false;
+                    if (e.ctrlKey)
+                        return false;
+                    break;
             }
 
 
@@ -640,7 +644,7 @@
                 newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
                 updateValue(newValue, newSelection, parseFn, true)
             } else {
-                newSelection = {start: oldValue.selection.start,end: oldValue.selection.start};
+                newSelection = {start: oldValue.selection.start, end: oldValue.selection.start};
                 newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '');
                 updateValue(newValue, newSelection, parseFn, true)
             }
