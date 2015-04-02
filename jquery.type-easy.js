@@ -494,7 +494,7 @@
                     return false;
             }
 
-            if (options.maxLength >= 0 && newValue.length > options.maxLength) {
+            if (settings.maxLength >= 0 && newValue.length > settings.maxLength) {
                 return false;
             }
 
