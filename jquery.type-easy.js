@@ -605,7 +605,7 @@
         }
 
         function setSelection(selection) {
-            if (el.is(':focus')) {
+            if (document.activeElement === el[0]) {
                 el.selection('setPos', selection);
             }
         }
