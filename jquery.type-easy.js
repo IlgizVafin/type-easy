@@ -565,7 +565,7 @@
 
             newSelection = newSelection || {start: selection.end, end: selection.end};
 
-            if (el.is(':focus')) {
+            if (document.activeElement === el[0]) {
                 el.val(value);
                 el.selection('setPos', newSelection);
             }
