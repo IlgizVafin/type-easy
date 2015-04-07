@@ -16,6 +16,30 @@
     var moduleSettings = {
         'restrictRegex': "[^\\s/\\w/\\dёЁа-яА-Я`~!@#$%^&*()_+-={}[/\\]:;\"'\\\\|<,>.?/№]+",
         'nonPrintableKeysRegex': /^(9|16|17|18|19|20|27|33|34|35|36|37|38|39|40|44|45|46|91|92|93|145)$/g
+        /*
+         * 9 - TAB
+         * 16 - ShiftLeft ShiftRight
+         * 17 - ControlLeft ControlRight
+         * 18 - ALtLeft
+         * 19 - Pause
+         * 20 - CapsLock
+         * 27 - Esc
+         * 33 - "Numpad9" ("PageUp")
+         * 34 - "Numpad3" ("PageDown")
+         * 35 - "Numpad1" ("End")
+         * 36 - "Numpad7" ("Home")
+         * 37 - "Numpad4" ("ArrowLeft")
+         * 38 - "Numpad8" ("ArrowUp")
+         * 39 - "Numpad6" ("ArrowRight")
+         * 40 - "Numpad2" ("ArrowDown")
+         * 44 - "PrintScreen"
+         * 45 - "Insert"
+         * 46 - "Delete"
+         * 91 - "OSLeft"
+         * 92 - "OSRight"
+         * 93 - "ContextMenu"
+         * 145 - "ScrollLock"
+         * */
     };
     var ru_mapTable = {
         81: 'й',
@@ -422,6 +446,7 @@
         var settings = $.extend({}, defaults, options),
             el = $(this),
             char,
+            isNonPrintable = false,
             buffer = {
                 value: '',
                 tempValue: '',
@@ -474,6 +499,8 @@
             }
             char = helper.getChar(e, settings.language);
 
+            isNonPrintable = (e.keyCode !== 17 && !char && new RegExp(moduleSettings.nonPrintableKeysRegex.source, 'g').test(e.keyCode));
+
             if (e.ctrlKey && char) {
                 el.trigger('keypress', e);
                 return false;
@@ -481,8 +508,9 @@
         });
         el.keypress(function (e) {
 
-            if (!char && new RegExp(moduleSettings.nonPrintableKeysRegex.source, 'g').test(e.keyCode)) {
-                return true;
+            if (isNonPrintable) {
+                isNonPrintable = false;
+                return;
             }
 
             char = char || String.fromCharCode(e.keyCode);
@@ -524,9 +552,7 @@
                 }
                 if (restrict) return false;
             }
-            if (settings.maxLength >= 0 && newValue.length > settings.maxLength) {
-                return false;
-            }
+
             if (caretPosition === newValue.length) {
                 if (settings.upperCaseRegex) {
                     newValue = newValue.replace(settings.upperCaseRegex, function () {
@@ -557,7 +583,7 @@
             setDefaultState();
             updateStack();
         });
-        el.on('paste dragover dragstart', function (e) {
+        el.on('paste dragover dragstart drop', function (e) {
             e.preventDefault();
         });
         el.on('blur', function () {
@@ -567,7 +593,7 @@
         function updateValue(value, selection, parseFn, isUpdateStack) {
             var newSelection;
             if ($.isFunction(parseFn)) {
-                var parsedValue = parseFn(value, selection);
+                var parsedValue = parseFn(value, selection, el[0]);
                 if (parsedValue !== null && parsedValue !== undefined) {
                     value = parsedValue.value;
                     newSelection = {
@@ -580,6 +606,11 @@
                 start: selection.end,
                 end: selection.end
             };
+
+            if (settings.maxLength >= 0 && value.length > settings.maxLength) {
+                return false;
+            }
+
             if (document.activeElement === el[0]) {
                 el.val(value);
                 el.selection('setPos', newSelection);
