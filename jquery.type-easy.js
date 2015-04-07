@@ -394,7 +394,8 @@
         'ю': {
             default: 'ю',
             ctrl: '.'
-        }
+        },
+        '.': '.'
     };
     var helper = {
         $parseMapTable: function (e, mapObj) {
@@ -418,24 +419,30 @@
         getChar: function (e, lang) {
             var mapObj = {};
 
+            if(e.key && (e.key === '.' || e.key === ',') && e.keyCode === 0){
+                e.keyCode = 191;
+            }else if(e.key && e.key === '.' && e.keyCode === 190){
+                e.keyCode = 191;
+            }
+
             switch (lang) {
                 case 'RU':
                     if (e.keyCode)
                         mapObj = ru_mapTable[e.keyCode];
                     else if (e.key)
-                        mapObj = gecko_mapTable[e.key];
+                        mapObj = gecko_mapTable[e.key.toLowerCase()];
                     break;
                 case 'EN':
                     if (e.keyCode)
                         mapObj = en_mapTable[e.keyCode];
                     else if (e.key)
-                        mapObj = gecko_mapTable[e.key];
+                        mapObj = gecko_mapTable[e.key.toLowerCase()];
                     break;
                 default:
                     if (e.keyCode)
                         mapObj = default_mapTable[e.keyCode];
                     else if (e.key)
-                        mapObj = gecko_mapTable[e.key];
+                        mapObj = gecko_mapTable[e.key.toLowerCase()];
                     break;
             }
 
@@ -498,7 +505,7 @@
                     break;
             }
             char = helper.getChar(e, settings.language);
-
+            
             isNonPrintable = (e.keyCode !== 17 && !char && new RegExp(moduleSettings.nonPrintableKeysRegex.source, 'g').test(e.keyCode));
 
             if (e.ctrlKey && char) {
@@ -513,7 +520,8 @@
                 return;
             }
 
-            char = char || String.fromCharCode(e.keyCode);
+            var originChar = String.fromCharCode(e.keyCode || e.which);
+            char = char || originChar;
 
             if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char)) return;
             e.preventDefault();
@@ -527,9 +535,9 @@
                     end: caretPosition
                 };
             if (!settings.capsLockOff) {
-                if (char.toUpperCase() === char && char.toLowerCase() !== char && !e.shiftKey) {
+                if (originChar.toUpperCase() === originChar && originChar.toLowerCase() !== originChar && !e.shiftKey) {
                     char = char.toUpperCase();
-                } else if (char.toUpperCase() !== char && char.toLowerCase() === char && e.shiftKey) {
+                } else if (originChar.toUpperCase() !== originChar && originChar.toLowerCase() === originChar && e.shiftKey) {
                     char = char.toLowerCase();
                 }
             }
