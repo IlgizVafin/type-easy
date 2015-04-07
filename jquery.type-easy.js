@@ -375,28 +375,16 @@
             ctrl: '/'
         }
     };
-    var gecko_mapTable = { //for cyrillic symbols
-        'ё': 'ё',
-        'х': 'х',
-        'ъ': 'ъ',
-        'ж': {
-            default: 'ж',
-            ctrl: ';'
-        },
-        'э': {
-            default: 'э',
-            ctrl: '\''
-        },
-        'б': {
-            default: 'б',
-            ctrl: ','
-        },
-        'ю': {
-            default: 'ю',
-            ctrl: '.'
-        },
-        '.': '.'
+    var gecko_code_keyCode_mapTable = {
+        'BracketLeft': 219,
+        'BracketRight': 221,
+        'Semicolon': 186,
+        'Quote': 222,
+        'Comma': 188,
+        'Period': 190,
+        'Slash': 191
     };
+
     var helper = {
         $parseMapTable: function (e, mapObj) {
             if (!mapObj) return;
@@ -417,36 +405,29 @@
             }
         },
         getChar: function (e, lang) {
-            var mapObj = {};
 
-            if(e.key && (e.key === '.' || e.key === ',') && e.keyCode === 0){
-                e.keyCode = 191;
-            }else if(e.key && e.key === '.' && e.keyCode === 190){
-                e.keyCode = 191;
+            if (helper.isFireFox()) {
+                e.keyCode = gecko_code_keyCode_mapTable[e.originalEvent.code] || e.keyCode;
             }
+
+            var mapObj = {};
 
             switch (lang) {
                 case 'RU':
-                    if (e.keyCode)
-                        mapObj = ru_mapTable[e.keyCode];
-                    else if (e.key)
-                        mapObj = gecko_mapTable[e.key.toLowerCase()];
+                    mapObj = ru_mapTable[e.keyCode];
                     break;
                 case 'EN':
-                    if (e.keyCode)
-                        mapObj = en_mapTable[e.keyCode];
-                    else if (e.key)
-                        mapObj = gecko_mapTable[e.key.toLowerCase()];
+                    mapObj = en_mapTable[e.keyCode];
                     break;
                 default:
-                    if (e.keyCode)
-                        mapObj = default_mapTable[e.keyCode];
-                    else if (e.key)
-                        mapObj = gecko_mapTable[e.key.toLowerCase()];
+                    mapObj = default_mapTable[e.keyCode];
                     break;
             }
 
             return helper.$parseMapTable(e, mapObj);
+        },
+        isFireFox: function () {
+            return navigator.userAgent.toLowerCase().indexOf('firefox');
         }
     };
     $.fn.type_easy = function (options, valueChangedFn, parseFn) {
@@ -483,6 +464,7 @@
                     setSelection(this.newValue.selection);
                 }
             });
+
         el.keydown(function (e) {
             oldValue = {
                 value: el.val(),
@@ -505,7 +487,7 @@
                     break;
             }
             char = helper.getChar(e, settings.language);
-            
+
             isNonPrintable = (e.keyCode !== 17 && !char && new RegExp(moduleSettings.nonPrintableKeysRegex.source, 'g').test(e.keyCode));
 
             if (e.ctrlKey && char) {
