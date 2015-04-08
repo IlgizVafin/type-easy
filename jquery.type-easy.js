@@ -407,7 +407,7 @@
         getChar: function (e, lang) {
 
             if (helper.isFireFox()) {
-                e.keyCode = gecko_code_keyCode_mapTable[e.originalEvent.code] || e.keyCode;
+                e.keyCode = (e.originalEvent && e.originalEvent.code && gecko_code_keyCode_mapTable[e.originalEvent.code]) || e.keyCode;
             }
 
             var mapObj = {};
