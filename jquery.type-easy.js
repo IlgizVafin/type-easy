@@ -14,7 +14,7 @@
         }
     };
     var moduleSettings = {
-        'restrictRegex': "[^\\s/\\w/\\dёЁа-яА-Я`~!@#$%^&*()_+-={}[/\\]:;\"'\\\\|<,>.?/№]+",
+        'restrictRegex': "[^\\s/\\dёЁа-яА-Яa-zA-Z`~!@#$%^&*()_+-={}[/\\]:;\"'\\\\|<,>.?/№]+",
         'nonPrintableKeysRegex': /^(9|16|17|18|19|20|27|33|34|35|36|37|38|39|40|44|45|46|91|92|93|145)$/g
         /*
          * 9 - TAB
@@ -505,7 +505,8 @@
             var originChar = String.fromCharCode(e.keyCode || e.which);
             char = char || originChar;
 
-            if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char)) return;
+            if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char))
+                return false;
             e.preventDefault();
             e.stopPropagation();
             var selection = el.selection('getPos'),
