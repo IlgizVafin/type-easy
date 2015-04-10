@@ -505,7 +505,7 @@
                 return false;
 
             //prevent, if ctrl+key mapping not exist
-            if (e.keyCode !== 17 && !char && (e.ctrlKey || e.altKey))
+            if (e.keyCode !== 17 && !char && e.ctrlKey)
                 return false;
 
             isNonPrintable = (e.keyCode !== 17 && !char && new RegExp(moduleSettings.nonPrintableKeysRegex.source, 'g').test(e.keyCode));
