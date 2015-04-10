@@ -488,6 +488,14 @@
             }
             char = helper.getChar(e, settings.language);
 
+            //prevent alt+key
+            if (e.keyCode !== 18 && e.altKey)
+                return false;
+
+            //prevent, if ctrl+key mapping not exist
+            if (e.keyCode !== 17 && !char && (e.ctrlKey || e.altKey))
+                return false;
+
             isNonPrintable = (e.keyCode !== 17 && !char && new RegExp(moduleSettings.nonPrintableKeysRegex.source, 'g').test(e.keyCode));
 
             if (e.ctrlKey && char) {
