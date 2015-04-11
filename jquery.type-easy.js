@@ -813,6 +813,8 @@
                     var actualSelection = elm.selection('getPos');
                     var valueEndSelection = mask.getSelection({start: value.length, end: value.length});
 
+                    //set to start if: 1. value length equal zero 2. caret position less than value start position
+                    //set to end of value if: caret position more than value position
                     if (value.length === 0 || unmaskSelection.start === 0) {
                         setSelection(mask.getSelection({start: 0, end: 0}));
                     } else if (actualSelection.start > valueEndSelection.start) {
