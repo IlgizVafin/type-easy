@@ -83,7 +83,7 @@
     $('#ruInput').type_easy({
         language: 'RU',
         capsLockOff: true,
-        restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я]|([- '])\1/g,
+        restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я]|([- '])+\1/g,
         upperCaseRegex: /^[^- ']|[- '][^- ']/g,
         maxLength: 50,
         undoDeep: 3
@@ -146,7 +146,7 @@
     var isOn = true;
     function toggle() {
         $('#ruInput').type_easy('updateSettings', {
-            restrictRegex: isOn ? '' : /^[- ']|[^- 'ёЁа-яА-Я]|([- '])\1/g
+            restrictRegex: isOn ? '' : /^[- ']|[^- 'ёЁа-яА-Я]|([- '])+\1/g
         });
         isOn = !isOn;
     }
