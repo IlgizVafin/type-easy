@@ -16,6 +16,12 @@
     <tr>
         <td><input id="ruInput" type="text"/></td>
         <td>special symbols: "-", " ", "'". CAPS LOCK is disabled</td>
+        <td>
+            <button onclick="toggle()">toggle restrict</button>
+        </td>
+        <td>
+            <button onclick="destroy()">destroy</button>
+        </td>
     </tr>
     <tr>
         <td><textarea id="ruTextarea"></textarea></td>
@@ -136,6 +142,19 @@
             ifRegex: /\d+/
         }
     });
+
+    var isOn = true;
+    function toggle() {
+        $('#ruInput').type_easy('updateSettings', {
+            restrictRegex: isOn ? '' : /^[- ']|[^- 'ёЁа-яА-Я]|([- '])\1/g
+        });
+        isOn = !isOn;
+    }
+
+    function destroy(){
+        $('#ruInput').type_easy('destroy');
+    }
+
 </script>
 </body>
 </html>

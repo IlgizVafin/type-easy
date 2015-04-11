@@ -398,7 +398,7 @@
     };
 
     var helper = {
-        $parseMapTable: function (e, mapObj) {
+        parseMapTable: function (e, mapObj) {
             if (!mapObj) return;
             if (e.ctrlKey) {
                 return mapObj.ctrl;
@@ -436,280 +436,344 @@
                     break;
             }
 
-            return helper.$parseMapTable(e, mapObj);
+            return helper.parseMapTable(e, mapObj);
         },
         isFireFox: function () {
             return navigator.userAgent.toLowerCase().indexOf('firefox');
         }
     };
-    $.fn.type_easy = function (options, valueChangedFn, parseFn) {
-        var settings = $.extend({}, defaults, options),
-            el = $(this),
-            char,
-            isNonPrintable = false,
-            buffer = {
-                value: '',
-                tempValue: '',
-                index: 0
-            },
-            needDebounce = settings.debounce && settings.debounce.ifRegex instanceof RegExp,
-            oldValue = {},
-            stack = new Undo.Stack(),
-            EditCommand = Undo.Command.extend({
-                constructor: function (element, oldValue, newValue) {
-                    this.element = element;
-                    this.oldValue = oldValue;
-                    this.newValue = newValue;
+
+    var methods = {
+        init: function (options, valueChangedFn, parseFn) {
+            var elm = $(this),
+                data = elm.data('type_easy'),
+                char,
+                isNonPrintable = false,
+                buffer = {
+                    value: '',
+                    tempValue: '',
+                    index: 0
                 },
-                execute: function () {
-                },
-                undo: function () {
-                    this.element.val(this.oldValue.value);
-                    this.element.selection('setPos', this.oldValue.selection);
-                    updateValue(this.oldValue.value, this.oldValue.selection, parseFn)
-                    setSelection(this.oldValue.selection);
-                },
-                redo: function () {
-                    this.element.val(this.newValue.value);
-                    this.element.selection('setPos', this.newValue.selection);
-                    updateValue(this.newValue.value, this.newValue.selection, parseFn)
-                    setSelection(this.newValue.selection);
+                oldValue = {},
+                stack = new Undo.Stack(),
+                EditCommand = Undo.Command.extend({
+                    constructor: function (element, oldValue, newValue, parseFn) {
+                        this.element = element;
+                        this.oldValue = oldValue;
+                        this.newValue = newValue;
+                        this.parseFn = parseFn;
+                    },
+                    execute: function () {
+                    },
+                    undo: function () {
+                        this.element.val(this.oldValue.value);
+                        this.element.selection('setPos', this.oldValue.selection);
+                        updateValue(this.oldValue.value, this.oldValue.selection, this.parseFn);
+                        setSelection(this.oldValue.selection);
+                    },
+                    redo: function () {
+                        this.element.val(this.newValue.value);
+                        this.element.selection('setPos', this.newValue.selection);
+                        updateValue(this.newValue.value, this.newValue.selection, this.parseFn);
+                        setSelection(this.newValue.selection);
+                    }
+                });
+
+            if (!data) {
+                elm.data('type_easy', {
+                    settings: $.extend({}, defaults, options)
+                });
+            }
+
+            elm.bind('keydown.type_easy', function (e) {
+                var settings = getSettings();
+
+                oldValue = {
+                    value: elm.val(),
+                    selection: elm.selection('getPos')
+                };
+                switch (e.keyCode) {
+                    case 8: //BackSpace
+                        backSpace(e.ctrlKey);
+                        return false;
+                    case 46: //Delete
+                        deleteSpace(e.ctrlKey);
+                        return false;
+                    case 89: //y
+                        e.ctrlKey && stack.canRedo() && stack.redo();
+                        if (e.ctrlKey) return false;
+                        break;
+                    case 90: //z
+                        e.ctrlKey && stack.canUndo() && stack.undo();
+                        if (e.ctrlKey) return false;
+                        break;
+                    case 65: //a
+                        if (e.ctrlKey) return true;
+                        break;
+                }
+                char = helper.getChar(e, settings.language);
+
+                //prevent alt+key
+                if (e.keyCode !== 18 && e.altKey)
+                    return false;
+
+                //prevent, if ctrl+key mapping not exist
+                if (e.keyCode !== 17 && !char && e.ctrlKey)
+                    return false;
+
+                isNonPrintable = (e.keyCode !== 17 && !char && new RegExp(moduleSettings.nonPrintableKeysRegex.source, 'g').test(e.keyCode));
+
+                if (e.ctrlKey && char) {
+                    elm.trigger('keypress', e);
+                    return false;
                 }
             });
+            elm.bind('keypress.type_easy', function (e) {
 
-        el.keydown(function (e) {
-            oldValue = {
-                value: el.val(),
-                selection: el.selection('getPos')
-            };
-            switch (e.keyCode) {
-                case 8: //BackSpace
-                    backSpace(e.ctrlKey);
+                var settings = getSettings();
+
+                if (isNonPrintable) {
+                    isNonPrintable = false;
+                    return;
+                }
+
+                var originChar = String.fromCharCode(e.keyCode || e.which);
+                char = char || originChar;
+
+                if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char))
                     return false;
-                case 46: //Delete
-                    deleteSpace(e.ctrlKey);
-                    return false;
-                case 89: //y
-                    e.ctrlKey && stack.canRedo() && stack.redo();
-                    if (e.ctrlKey) return false;
-                    break;
-                case 90: //z
-                    e.ctrlKey && stack.canUndo() && stack.undo();
-                    if (e.ctrlKey) return false;
-                    break;
-            }
-            char = helper.getChar(e, settings.language);
-
-            //prevent alt+key
-            if (e.keyCode !== 18 && e.altKey)
-                return false;
-
-            //prevent, if ctrl+key mapping not exist
-            if (e.keyCode !== 17 && !char && e.ctrlKey)
-                return false;
-
-            isNonPrintable = (e.keyCode !== 17 && !char && new RegExp(moduleSettings.nonPrintableKeysRegex.source, 'g').test(e.keyCode));
-
-            if (e.ctrlKey && char) {
-                el.trigger('keypress', e);
-                return false;
-            }
-        });
-        el.keypress(function (e) {
-
-            if (isNonPrintable) {
-                isNonPrintable = false;
-                return;
-            }
-
-            var originChar = String.fromCharCode(e.keyCode || e.which);
-            char = char || originChar;
-
-            if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char))
-                return false;
-            e.preventDefault();
-            e.stopPropagation();
-            var selection = el.selection('getPos'),
-                startSelection = selection.start + buffer.tempValue.length,
-                endSelection = buffer.tempValue.length > 0 ? startSelection : selection.end,
-                caretPosition = startSelection + 1,
-                newSelection = {
-                    start: caretPosition,
-                    end: caretPosition
-                };
-            if (!settings.capsLockOff) {
-                if (originChar.toUpperCase() === originChar && originChar.toLowerCase() !== originChar && !e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                var selection = elm.selection('getPos'),
+                    startSelection = selection.start + buffer.tempValue.length,
+                    endSelection = buffer.tempValue.length > 0 ? startSelection : selection.end,
+                    caretPosition = startSelection + 1,
+                    newSelection = {
+                        start: caretPosition,
+                        end: caretPosition
+                    };
+                if (!settings.capsLockOff) {
+                    if (originChar.toUpperCase() === originChar && originChar.toLowerCase() !== originChar && !e.shiftKey) {
+                        char = char.toUpperCase();
+                    } else if (originChar.toUpperCase() !== originChar && originChar.toLowerCase() === originChar && e.shiftKey) {
+                        char = char.toLowerCase();
+                    }
+                }
+                if (settings.register == "UPPER_CASE") {
                     char = char.toUpperCase();
-                } else if (originChar.toUpperCase() !== originChar && originChar.toLowerCase() === originChar && e.shiftKey) {
+                } else if (settings.register == "LOWER_CASE") {
                     char = char.toLowerCase();
                 }
-            }
-            if (settings.register == "UPPER_CASE") {
-                char = char.toUpperCase();
-            } else if (settings.register == "LOWER_CASE") {
-                char = char.toLowerCase();
-            }
-            if (settings.lowerCaseByShift && e.shiftKey) {
-                char = char.toLowerCase();
-            }
-            buffer.value = buffer.value || el.val();
-            var newValue = buffer.value.replaceAt(startSelection, endSelection, char);
-            if (settings.restrictRegex) {
-                var tempArr,
-                    restrict = false,
-                    regex = new RegExp(settings.restrictRegex.source, 'g');
-                while ((tempArr = regex.exec(newValue)) != null && !restrict) {
-                    if ((caretPosition >= tempArr.index && caretPosition <= regex.lastIndex) || (tempArr.index === 0 && regex.lastIndex === newValue.length)) restrict = true;
+                if (settings.lowerCaseByShift && e.shiftKey) {
+                    char = char.toLowerCase();
                 }
-                if (restrict) return false;
+                buffer.value = buffer.value || elm.val();
+                var newValue = buffer.value.replaceAt(startSelection, endSelection, char);
+                if (settings.restrictRegex) {
+                    var tempArr,
+                        restrict = false,
+                        regex = new RegExp(settings.restrictRegex.source, 'g');
+                    while ((tempArr = regex.exec(newValue)) != null && !restrict) {
+                        if ((caretPosition >= tempArr.index && caretPosition <= regex.lastIndex) || (tempArr.index === 0 && regex.lastIndex === newValue.length)) restrict = true;
+                    }
+                    if (restrict) return false;
+                }
+
+                if (caretPosition === newValue.length) {
+                    if (settings.upperCaseRegex) {
+                        newValue = newValue.replace(settings.upperCaseRegex, function () {
+                            var offset = arguments[arguments.length - 2],
+                                match = arguments[0];
+                            if (settings.lowerCaseByShift && e.shiftKey) return match;
+                            if (offset + arguments[0].length === newSelection.start) {
+                                return match.toUpperCase();
+                            }
+                            return match;
+                        });
+                    }
+                }
+                buffer.tempValue += char;
+                buffer.value = newValue;
+                selection = {
+                    start: selection.start,
+                    end: selection.start + buffer.tempValue.length
+                };
+                if (isNeedDebounce() && settings.debounce.ifRegex.test(buffer.tempValue)) {
+                    debounceUpdateFn(buffer.value, selection, parseFn, true);
+                } else {
+                    updateValue(buffer.value, selection, parseFn, true);
+                }
+            });
+            elm.bind('input.type_easy propertychange.type_easy', function () {
+                if ($.isFunction(valueChangedFn)) valueChangedFn(elm.val());
+                setDefaultState();
+                updateStack();
+            });
+            elm.bind('paste.type_easy dragover.type_easy dragstart.type_easy drop.type_easy', function (e) {
+                e.preventDefault();
+            });
+            elm.bind('blur.type_easy', function () {
+                setDefaultState();
+            });
+
+            function updateValue(value, selection, parseFn, isUpdateStack) {
+                var settings = getSettings(),
+                    newSelection;
+                if ($.isFunction(parseFn)) {
+                    var parsedValue = parseFn(value, selection, elm[0]);
+                    if (parsedValue !== null && parsedValue !== undefined) {
+                        value = parsedValue.value;
+                        newSelection = {
+                            start: parsedValue.start || 0,
+                            end: parsedValue.end || 0
+                        };
+                    }
+                }
+                newSelection = newSelection || {
+                    start: selection.end,
+                    end: selection.end
+                };
+
+                if (settings.maxLength >= 0 && value.length > settings.maxLength) {
+                    return false;
+                }
+
+                if (document.activeElement === elm[0]) {
+                    elm.val(value);
+                    elm.selection('setPos', newSelection);
+                }
+                if ($.isFunction(valueChangedFn)) valueChangedFn(elm.val());
+                buffer.value = "";
+                buffer.tempValue = "";
+                if (isUpdateStack) updateStack();
             }
 
-            if (caretPosition === newValue.length) {
-                if (settings.upperCaseRegex) {
-                    newValue = newValue.replace(settings.upperCaseRegex, function () {
-                        var offset = arguments[arguments.length - 2],
-                            match = arguments[0];
-                        if (settings.lowerCaseByShift && e.shiftKey) return match;
-                        if (offset + arguments[0].length === newSelection.start) {
-                            return match.toUpperCase();
-                        }
-                        return match;
-                    });
+            var debounceUpdateFn = debounce(updateValue, getSettings().debounce.delay, !isNeedDebounce());
+
+            function setDefaultState() {
+                buffer.value = "";
+                buffer.tempValue = "";
+            }
+
+            function updateStack(force) {
+                var settings = getSettings();
+                var newValue = {
+                    value: elm.val(),
+                    selection: elm.selection('getPos')
+                };
+                if (newValue.value !== oldValue.value || force) {
+                    var command = new EditCommand(elm, oldValue, newValue, parseFn);
+                    stack.execute(command);
+                    if (stack.commands.length > settings.undoDeep) {
+                        if (stack.stackPosition >= 0) stack.stackPosition--;
+                        stack.commands.shift();
+                    }
                 }
             }
-            buffer.tempValue += char;
-            buffer.value = newValue;
-            selection = {
-                start: selection.start,
-                end: selection.start + buffer.tempValue.length
-            };
-            if (needDebounce && settings.debounce.ifRegex.test(buffer.tempValue)) {
-                debounceUpdateFn(buffer.value, selection, parseFn, true);
-            } else {
-                updateValue(buffer.value, selection, parseFn, true);
-            }
-        });
-        el.bind('input propertychange', function () {
-            if ($.isFunction(valueChangedFn)) valueChangedFn(el.val());
-            setDefaultState();
-            updateStack();
-        });
-        el.on('paste dragover dragstart drop', function (e) {
-            e.preventDefault();
-        });
-        el.on('blur', function () {
-            setDefaultState();
-        });
 
-        function updateValue(value, selection, parseFn, isUpdateStack) {
-            var newSelection;
-            if ($.isFunction(parseFn)) {
-                var parsedValue = parseFn(value, selection, el[0]);
-                if (parsedValue !== null && parsedValue !== undefined) {
-                    value = parsedValue.value;
+            function setSelection(selection) {
+                if (document.activeElement === elm[0]) {
+                    elm.selection('setPos', selection);
+                }
+            }
+
+            function backSpace(ctrlKey) {
+                var newSelection = {},
+                    newValue = '';
+                if (oldValue.selection.start !== oldValue.selection.end) {
                     newSelection = {
-                        start: parsedValue.start || 0,
-                        end: parsedValue.end || 0
+                        start: oldValue.selection.start,
+                        end: oldValue.selection.start
                     };
+                    newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
+                    updateValue(newValue, newSelection, parseFn, true)
+                } else {
+                    newSelection = ctrlKey ? {
+                        start: 0,
+                        end: 0
+                    } : {
+                        start: oldValue.selection.start - 1,
+                        end: oldValue.selection.start - 1
+                    };
+                    newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '');
+                    updateValue(newValue, newSelection, parseFn, true)
+                }
+                //todo на будущее реализовать
+                /* var indices = [];
+                 for (var i = 0; i < oldValue.selection.start; i++) {
+                 if (/\S/.test(oldValue.value[i])) indices.push(i);
+                 }*/
+            }
+
+            function deleteSpace(ctrlKey) {
+                var newSelection = {},
+                    newValue = '';
+                if (oldValue.selection.start !== oldValue.selection.end) {
+                    newSelection = {
+                        start: oldValue.selection.start,
+                        end: oldValue.selection.start
+                    };
+                    newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
+                    updateValue(newValue, newSelection, parseFn, true)
+                } else {
+                    newSelection = {
+                        start: oldValue.selection.start,
+                        end: oldValue.selection.start
+                    };
+                    newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '');
+                    updateValue(newValue, newSelection, parseFn, true)
                 }
             }
-            newSelection = newSelection || {
-                start: selection.end,
-                end: selection.end
-            };
 
-            if (settings.maxLength >= 0 && value.length > settings.maxLength) {
-                return false;
+            function isNeedDebounce() {
+                var settings = getSettings();
+                return settings.debounce && settings.debounce.ifRegex instanceof RegExp;
             }
 
-            if (document.activeElement === el[0]) {
-                el.val(value);
-                el.selection('setPos', newSelection);
+            function getSettings() {
+                var data = elm.data('type_easy');
+
+                if (!data)
+                    return defaults;
+
+                return data.settings || defaults;
             }
-            if ($.isFunction(valueChangedFn)) valueChangedFn(el.val());
-            buffer.value = "";
-            buffer.tempValue = "";
-            if (isUpdateStack) updateStack();
+
+            return elm;
+        },
+        updateSettings: function (options) {
+
+            var elm = $(this);
+
+            var data = elm.data('type_easy') || {settings: defaults};
+            elm.data('type_easy', {
+                settings: $.extend({}, data.settings, options)
+            });
+
+        },
+        destroy: function () {
+            return this.each(function () {
+                var elm = $(this),
+                    data = elm.data('type_easy');
+
+                elm.unbind('.type_easy');
+                elm.removeData('type_easy');
+            });
         }
-
-        var debounceUpdateFn = debounce(updateValue, settings.debounce.delay, !needDebounce);
-
-        function setDefaultState() {
-            buffer.value = "";
-            buffer.tempValue = "";
-        }
-
-        function updateStack(force) {
-            var newValue = {
-                value: el.val(),
-                selection: el.selection('getPos')
-            };
-            if (newValue.value !== oldValue.value || force) {
-                var command = new EditCommand(el, oldValue, newValue);
-                stack.execute(command);
-                if (stack.commands.length > settings.undoDeep) {
-                    if (stack.stackPosition >= 0) stack.stackPosition--;
-                    stack.commands.shift();
-                }
-            }
-        }
-
-        function setSelection(selection) {
-            if (document.activeElement === el[0]) {
-                el.selection('setPos', selection);
-            }
-        }
-
-        function backSpace(ctrlKey) {
-            var newSelection = {},
-                newValue = '';
-            if (oldValue.selection.start !== oldValue.selection.end) {
-                newSelection = {
-                    start: oldValue.selection.start,
-                    end: oldValue.selection.start
-                };
-                newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
-                updateValue(newValue, newSelection, parseFn, true)
-            } else {
-                newSelection = ctrlKey ? {
-                    start: 0,
-                    end: 0
-                } : {
-                    start: oldValue.selection.start - 1,
-                    end: oldValue.selection.start - 1
-                };
-                newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '');
-                updateValue(newValue, newSelection, parseFn, true)
-            }
-            //todo на будущее реализовать
-            /* var indices = [];
-             for (var i = 0; i < oldValue.selection.start; i++) {
-             if (/\S/.test(oldValue.value[i])) indices.push(i);
-             }*/
-        }
-
-        function deleteSpace(ctrlKey) {
-            var newSelection = {},
-                newValue = '';
-            if (oldValue.selection.start !== oldValue.selection.end) {
-                newSelection = {
-                    start: oldValue.selection.start,
-                    end: oldValue.selection.start
-                };
-                newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
-                updateValue(newValue, newSelection, parseFn, true)
-            } else {
-                newSelection = {
-                    start: oldValue.selection.start,
-                    end: oldValue.selection.start
-                };
-                newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '');
-                updateValue(newValue, newSelection, parseFn, true)
-            }
-        }
-
-        return el;
     };
+
+    $.fn.type_easy = function (method) {
+
+        if (methods[method]) {
+            return methods[method].apply(this, Array.prototype.slice.call(arguments, 1));
+        } else if (typeof method === 'object' || !method) {
+            return methods.init.apply(this, arguments);
+        } else {
+            $.error('Метод с именем ' + method + ' не существует для jQuery.type_easy');
+        }
+
+    };
+
     String.prototype.replaceAt = function (start, end, character) {
         return this.substr(0, start) + character + this.substr(end);
     };
@@ -729,4 +793,5 @@
             if (callNow) func.apply(context, args);
         };
     };
+
 })(window.jQuery);
