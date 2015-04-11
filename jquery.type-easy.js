@@ -8,7 +8,10 @@
         lowerCaseByShift: false,
         maxLength: -1,
         undoDeep: 10,
-        mask: null,
+        mask: {
+            pattern: '',
+            insertMode: false
+        },
         debounce: {
             delay: 0,
             ifRegex: null
@@ -485,7 +488,7 @@
                         setSelection(this.newValue.selection);
                     }
                 }),
-                mask = new Mask(settings.mask, elm);
+                mask = new Mask(settings.mask.pattern || settings.mask, elm);
 
             if (mask.isMaskProcessed()) {
                 var masked = mask.maskValue("");
@@ -499,6 +502,7 @@
             }
 
             elm.bind('keydown.type_easy', function (e) {
+
                 var settings = getSettings();
 
                 oldValue = {
@@ -582,7 +586,7 @@
                 }
                 buffer.value = buffer.value || getValue();
                 //insert mode if mask exist and value is full
-                if (mask.isMaskProcessed() && buffer.value.length === mask.getRequiredLength())
+                if (mask.isMaskProcessed() && settings.mask.insertMode && buffer.value.length === mask.getRequiredLength())
                     endSelection++;
                 var newValue = buffer.value.replaceAt(startSelection, endSelection, char);
                 if (settings.restrictRegex) {
@@ -624,7 +628,16 @@
                     updateValue(buffer.value, selection, parseFn, true);
                 }
             });
-            elm.bind('keyup.type_easy', setRightSelection);
+            elm.bind('keyup.type_easy', function (e) {
+
+                var selection = elm.selection('getPos');
+
+                //value is selected
+                if (selection.start === 0 && selection.end === elm.val().length)
+                    return;
+
+                setRightSelection();
+            });
             elm.bind('input.type_easy propertychange.type_easy', function () {
                 if ($.isFunction(valueChangedFn)) valueChangedFn(elm.val());
                 setDefaultState();
@@ -633,12 +646,11 @@
             elm.bind('paste.type_easy dragover.type_easy dragstart.type_easy drop.type_easy', function (e) {
                 e.preventDefault();
             });
-            elm.bind('focus.type_easy', function () {
-                return;
-
-                //todo на время разработки
+            elm.bind('focus.type_easy', function (e) {
                 if (mask.isMaskProcessed()) {
                     elm.val(mask.maskValue(getValue()));
+
+                    e.preventDefault();
                 }
             });
             elm.bind('blur.type_easy', function () {
@@ -796,7 +808,16 @@
             function setRightSelection() {
 
                 if (mask.isMaskProcessed()) {
+                    var value = getValue();
+                    var unmaskSelection = getSelection();
+                    var actualSelection = elm.selection('getPos');
+                    var valueEndSelection = mask.getSelection({start: value.length, end: value.length});
 
+                    if (value.length === 0 || unmaskSelection.start === 0) {
+                        setSelection(mask.getSelection({start: 0, end: 0}));
+                    } else if (actualSelection.start > valueEndSelection.start) {
+                        setSelection(mask.getSelection({start: value.length, end: value.length}));
+                    }
 
                 }
 

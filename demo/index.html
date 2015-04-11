@@ -86,17 +86,20 @@
         restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я\d]|([- '])+\1/g,
         upperCaseRegex: /^[^- ']|[- '][^- ']/g,
         maxLength: 50,
-        mask: '+7 (999) 999-99-99',
+        mask: {
+            pattern: '+7 (999) TES-99-99 BC',
+            insertMode: true
+        },
         undoDeep: 3
     });
 
-    $('#ruTextarea').type_easy({
-        language: 'RU',
-        register: "UPPER_CASE",
-        lowerCaseByShift: true,
-        restrictRegex: /^[- '№\/]|[^- '№\/ёЁа-яА-Я]|([- '№\/])\1/g,
-        upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g
-    });
+    /*  $('#ruTextarea').type_easy({
+     language: 'RU',
+     register: "UPPER_CASE",
+     lowerCaseByShift: true,
+     restrictRegex: /^[- '№\/]|[^- '№\/ёЁа-яА-Я]|([- '№\/])\1/g,
+     upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g
+     });*/
     $('#ruSpecInput').type_easy({
         language: 'RU',
         restrictRegex: /[^@#.\/_]/g
@@ -152,7 +155,7 @@
         isOn = !isOn;
     }
 
-    function destroy(){
+    function destroy() {
         $('#ruInput').type_easy('destroy');
     }
 
