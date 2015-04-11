@@ -8,6 +8,7 @@
         lowerCaseByShift: false,
         maxLength: -1,
         undoDeep: 10,
+        mask: null,
         debounce: {
             delay: 0,
             ifRegex: null
@@ -15,7 +16,6 @@
     };
     var moduleSettings = {
         'restrictRegex': "[^\\s/\\dёЁа-яА-Яa-zA-Z`~!@#$%^&*()_+-={}[/\\]:;\"'\\\\|<,>.?/№]+",
-        'nonPrintableKeysRegex': /^(9|16|17|18|19|20|27|33|34|35|36|37|38|39|40|44|45|46|91|92|93|145|112|113|114|115|116|117|118|119|120|121|122|123)$/g
         /*
          * 9 - TAB
          * 16 - ShiftLeft ShiftRight
@@ -52,6 +52,12 @@
          * 122 - F11
          * 123 - F12
          * */
+        'nonPrintableKeysRegex': /^(9|16|17|18|19|20|27|33|34|35|36|37|38|39|40|44|45|46|91|92|93|145|112|113|114|115|116|117|118|119|120|121|122|123)$/g,
+        'maskDefinitions': {
+            '9': /\d/,
+            'A': /[a-zA-Zа-яА-ЯёЁ]/,
+            '*': /[a-zA-Zа-яА-ЯёЁ0-9]/
+        }
     };
     var ru_mapTable = {
         81: 'й',
@@ -446,6 +452,7 @@
     var methods = {
         init: function (options, valueChangedFn, parseFn) {
             var elm = $(this),
+                settings = $.extend({}, defaults, options),
                 data = elm.data('type_easy'),
                 char,
                 isNonPrintable = false,
@@ -477,11 +484,17 @@
                         updateValue(this.newValue.value, this.newValue.selection, this.parseFn);
                         setSelection(this.newValue.selection);
                     }
-                });
+                }),
+                mask = new Mask(settings.mask, elm);
+
+            if (mask.isMaskProcessed()) {
+                var masked = mask.maskValue("");
+                elm.attr('placeholder', masked);
+            }
 
             if (!data) {
                 elm.data('type_easy', {
-                    settings: $.extend({}, defaults, options)
+                    settings: settings
                 });
             }
 
@@ -489,8 +502,8 @@
                 var settings = getSettings();
 
                 oldValue = {
-                    value: elm.val(),
-                    selection: elm.selection('getPos')
+                    value: getValue(),
+                    selection: getSelection()
                 };
                 switch (e.keyCode) {
                     case 8: //BackSpace
@@ -544,7 +557,7 @@
                     return false;
                 e.preventDefault();
                 e.stopPropagation();
-                var selection = elm.selection('getPos'),
+                var selection = getSelection(),
                     startSelection = selection.start + buffer.tempValue.length,
                     endSelection = buffer.tempValue.length > 0 ? startSelection : selection.end,
                     caretPosition = startSelection + 1,
@@ -567,7 +580,10 @@
                 if (settings.lowerCaseByShift && e.shiftKey) {
                     char = char.toLowerCase();
                 }
-                buffer.value = buffer.value || elm.val();
+                buffer.value = buffer.value || getValue();
+                //insert mode if mask exist and value is full
+                if (mask.isMaskProcessed() && buffer.value.length === mask.getRequiredLength())
+                    endSelection++;
                 var newValue = buffer.value.replaceAt(startSelection, endSelection, char);
                 if (settings.restrictRegex) {
                     var tempArr,
@@ -578,6 +594,10 @@
                     }
                     if (restrict) return false;
                 }
+
+                //validate masked value
+                if (mask.isMaskProcessed() && !mask.validateValue(newValue))
+                    return false;
 
                 if (caretPosition === newValue.length) {
                     if (settings.upperCaseRegex) {
@@ -604,6 +624,7 @@
                     updateValue(buffer.value, selection, parseFn, true);
                 }
             });
+            elm.bind('keyup.type_easy', setRightSelection);
             elm.bind('input.type_easy propertychange.type_easy', function () {
                 if ($.isFunction(valueChangedFn)) valueChangedFn(elm.val());
                 setDefaultState();
@@ -612,9 +633,22 @@
             elm.bind('paste.type_easy dragover.type_easy dragstart.type_easy drop.type_easy', function (e) {
                 e.preventDefault();
             });
+            elm.bind('focus.type_easy', function () {
+                return;
+
+                //todo на время разработки
+                if (mask.isMaskProcessed()) {
+                    elm.val(mask.maskValue(getValue()));
+                }
+            });
             elm.bind('blur.type_easy', function () {
                 setDefaultState();
+
+                if (mask.isMaskProcessed()) {
+                    elm.val(mask.unmaskValue(elm.val()) ? elm.val() : '');
+                }
             });
+            elm.bind('click.type_easy', setRightSelection);
 
             function updateValue(value, selection, parseFn, isUpdateStack) {
                 var settings = getSettings(),
@@ -639,8 +673,12 @@
                 }
 
                 if (document.activeElement === elm[0]) {
-                    elm.val(value);
-                    elm.selection('setPos', newSelection);
+                    if (mask.isMaskProcessed()) {
+                        value = mask.maskValue(value, newSelection);
+                        newSelection = mask.getSelection(newSelection);
+                    }
+
+                    setValue(value, newSelection);
                 }
                 if ($.isFunction(valueChangedFn)) valueChangedFn(elm.val());
                 buffer.value = "";
@@ -668,12 +706,6 @@
                         if (stack.stackPosition >= 0) stack.stackPosition--;
                         stack.commands.shift();
                     }
-                }
-            }
-
-            function setSelection(selection) {
-                if (document.activeElement === elm[0]) {
-                    elm.selection('setPos', selection);
                 }
             }
 
@@ -739,6 +771,37 @@
                 return data.settings || defaults;
             }
 
+            function getValue() {
+                return mask.isMaskProcessed() ? mask.unmaskValue(elm.val()) : elm.val();
+            }
+
+            function setValue(value, selection) {
+                elm.val(value);
+                setSelection(selection);
+            }
+
+            function getSelection() {
+                var selection = elm.selection('getPos');
+                return mask.isMaskProcessed() ?
+                    mask.getUnmaskedSelection(selection) :
+                    selection;
+            }
+
+            function setSelection(selection) {
+                if (document.activeElement === elm[0]) {
+                    elm.selection('setPos', selection);
+                }
+            }
+
+            function setRightSelection() {
+
+                if (mask.isMaskProcessed()) {
+
+
+                }
+
+            }
+
             return elm;
         },
         updateSettings: function (options) {
@@ -793,5 +856,179 @@
             if (callNow) func.apply(context, args);
         };
     };
+
+    //core logic from https://github.com/angular-ui/ui-utils/blob/master/modules/mask/mask.js
+    function Mask(mask, elm) {
+
+        this.mask = mask;
+        this.getRequiredLength = getRequiredLength;
+        this.maskValue = maskValue;
+        this.unmaskValue = unmaskValue;
+        this.isMaskProcessed = isMaskProcessed;
+        this.getSelection = getSelection;
+        this.getUnmaskedSelection = getUnmaskedSelection;
+        this.validateValue = validateValue;
+
+        var maskProcessed = false;
+        var maskCaretMap, maskPatterns, maskPlaceholder,
+            minRequiredLength, maskComponents;
+
+        processRawMask();
+
+        return this;
+
+        function processRawMask() {
+            var characterCount = 0;
+
+            maskCaretMap = [];
+            maskPatterns = [];
+            maskPlaceholder = '';
+
+            if (typeof mask === 'string' && mask.length) {
+                minRequiredLength = 0;
+
+                var isOptional = false,
+                    numberOfOptionalCharacters = 0,
+                    splitMask = mask.split('');
+
+                splitMask.forEach(function (chr, i) {
+                    if (moduleSettings.maskDefinitions[chr]) {
+
+                        maskCaretMap.push(characterCount);
+
+                        maskPlaceholder += getPlaceholderChar(i - numberOfOptionalCharacters);
+                        maskPatterns.push(moduleSettings.maskDefinitions[chr]);
+
+                        characterCount++;
+                        if (!isOptional) {
+                            minRequiredLength++;
+                        }
+                    }
+                    else if (chr === '?') {
+                        isOptional = true;
+                        numberOfOptionalCharacters++;
+                    }
+                    else {
+                        maskPlaceholder += chr;
+                        characterCount++;
+                    }
+                })
+
+            }
+            // Caret position immediately following last position is valid.
+            maskCaretMap.push(maskCaretMap.slice().pop() + 1);
+
+            maskComponents = getMaskComponents();
+            maskProcessed = maskCaretMap.length > 1 ? true : false;
+        }
+
+        function getRequiredLength() {
+            return maskCaretMap.length - 1;
+        }
+
+        function getPlaceholderChar(i) {
+            var placeholder = elm.attr('placeholder');
+
+            if (typeof placeholder !== 'undefined' && placeholder[i]) {
+                return placeholder[i];
+            } else {
+                return '_';
+            }
+        }
+
+        // Generate array of mask components that will be stripped from a masked value
+        // before processing to prevent mask components from being added to the unmasked value.
+        // E.g., a mask pattern of '+7 9999' won't have the 7 bleed into the unmasked value.
+        // If a maskable char is followed by a mask char and has a mask
+        // char behind it, we'll split it into it's own component so if
+        // a user is aggressively deleting in the input and a char ahead
+        // of the maskable char gets deleted, we'll still be able to strip
+        // it in the unmaskValue() preprocessing.
+        function getMaskComponents() {
+            return maskPlaceholder.replace(/[_]+/g, '_').replace(/([^_]+)([a-zA-Zа-яА-ЯёЁ0-9])([^_])/g, '$1$2_$3').split('_');
+        }
+
+        function isMaskProcessed() {
+            return maskProcessed;
+        }
+
+        function maskValue(unmaskedValue) {
+            var valueMasked = '',
+                maskCaretMapCopy = maskCaretMap.slice();
+
+            maskPlaceholder.split('').forEach(function (chr, i) {
+                if (unmaskedValue.length && i === maskCaretMapCopy[0]) {
+
+                    if (unmaskedValue.length && i === maskCaretMapCopy[0]) {
+                        valueMasked += unmaskedValue.charAt(0) || '_';
+                        unmaskedValue = unmaskedValue.substr(1);
+                        maskCaretMapCopy.shift();
+                    }
+                    else {
+                        valueMasked += chr;
+                    }
+                }
+                else {
+                    valueMasked += chr;
+                }
+            });
+
+            console.info('masked', valueMasked);
+
+            return valueMasked;
+        }
+
+        function unmaskValue(value) {
+            var valueUnmasked = '',
+                maskPatternsCopy = maskPatterns.slice();
+            // Preprocess by stripping mask components from value
+            value = value.toString();
+            maskComponents.forEach(function (component) {
+                value = value.replace(component, '');
+            });
+            value.split('').forEach(function (chr) {
+                if (maskPatternsCopy.length && maskPatternsCopy[0].test(chr)) {
+                    valueUnmasked += chr;
+                    maskPatternsCopy.shift();
+                }
+            });
+
+            console.info('unmasked', valueUnmasked);
+
+            return valueUnmasked;
+        }
+
+        function getUnmaskedSelection(selection) {
+
+            var maxCaretPos = maskCaretMap[getRequiredLength()];
+
+            while (selection.start <= maxCaretPos && maskCaretMap.indexOf(selection.start) === -1) {
+                selection.start++;
+            }
+
+            var start = maskCaretMap.indexOf(selection.start);
+
+            while (selection.end <= maxCaretPos && maskCaretMap.indexOf(selection.end) === -1) {
+                selection.end++;
+            }
+
+            var end = maskCaretMap.indexOf(selection.end);
+
+            return {start: start !== -1 ? start : maxCaretPos, end: end !== -1 ? end : maxCaretPos};
+        }
+
+        function getSelection(selection) {
+            var start = maskCaretMap[selection.start];
+            var end = maskCaretMap[selection.end];
+            return {start: start, end: end};
+        }
+
+        function validateValue(unmaskedValue) {
+            return unmaskedValue.length <= getRequiredLength() &&
+                unmaskedValue.split('').every(function (chr, i) {
+                    return maskPatterns[i].test(chr);
+                });
+        }
+    }
 
 })(window.jQuery);

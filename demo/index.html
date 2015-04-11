@@ -83,9 +83,10 @@
     $('#ruInput').type_easy({
         language: 'RU',
         capsLockOff: true,
-        restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я]|([- '])+\1/g,
+        restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я\d]|([- '])+\1/g,
         upperCaseRegex: /^[^- ']|[- '][^- ']/g,
         maxLength: 50,
+        mask: '+7 (999) 999-99-99',
         undoDeep: 3
     });
 
