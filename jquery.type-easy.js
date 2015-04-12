@@ -1105,23 +1105,6 @@
 
             return false;
         }
-
-        /*function validateValue(unmaskedValue, index) {
-
-         if (unmaskedValue.length <= getRequiredLength()) {
-
-         if (index >= 0) {
-         return maskPatterns[index].test(unmaskedValue[index]);
-         } else {
-         return unmaskedValue.split('').every(function (chr, i) {
-         return maskPatterns[i].test(chr);
-         });
-         }
-
-         }
-
-         return false;
-         }*/
     }
 
 })(window.jQuery);
