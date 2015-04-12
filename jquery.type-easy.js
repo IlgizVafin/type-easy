@@ -1,3 +1,7 @@
+
+//todo 1. selection by shift arrow and try to replace selected chars
+//todo 2. move char when delete or backspace
+//todo 3. think about autoplacing curcor position
 (function ($) {
     var defaults = {
         language: 'DEFAULT', //RU/EN
