@@ -83,14 +83,17 @@
     $('#ruInput').type_easy({
         language: 'RU',
         capsLockOff: true,
-        restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я\d]|([- '])+\1/g,
+        /*restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я\d]|([- '])+\1/g,*/
         upperCaseRegex: /^[^- ']|[- '][^- ']/g,
         maxLength: 50,
         mask: {
-            pattern: '+7 (999) TES-99-99 BC',
-            insertMode: true
+            pattern: '+7 (999) AAA-99-99 BC',
+            insertMode: false
         },
         undoDeep: 3
+    }, function (value, isValid) {
+        console.log(value)
+        console.warn(isValid)
     });
 
     /*  $('#ruTextarea').type_easy({

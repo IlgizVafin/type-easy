@@ -586,7 +586,7 @@
                 }
                 buffer.value = buffer.value || getValue();
                 //insert mode if mask exist and value is full
-                if (mask.isMaskProcessed() && settings.mask.insertMode && buffer.value.length === mask.getRequiredLength())
+                if (mask.isMaskProcessed() && (settings.mask.insertMode && buffer.value.length === mask.getRequiredLength() || buffer.value[endSelection] === '_'))
                     endSelection++;
                 var newValue = buffer.value.replaceAt(startSelection, endSelection, char);
                 if (settings.restrictRegex) {
@@ -600,7 +600,8 @@
                 }
 
                 //validate masked value
-                if (mask.isMaskProcessed() && !mask.validateValue(newValue))
+                //todo коcяк в валидации!!!!!
+                if (mask.isMaskProcessed() && !mask.validateValue(newValue, startSelection))
                     return false;
 
                 if (caretPosition === newValue.length) {
@@ -639,7 +640,8 @@
                 setRightSelection();
             });
             elm.bind('input.type_easy propertychange.type_easy', function () {
-                if ($.isFunction(valueChangedFn)) valueChangedFn(elm.val());
+                if ($.isFunction(valueChangedFn))
+                    valueChangedFn(elm.val(), isValid());
                 setDefaultState();
                 updateStack();
             });
@@ -692,7 +694,8 @@
 
                     setValue(value, newSelection);
                 }
-                if ($.isFunction(valueChangedFn)) valueChangedFn(elm.val());
+                if ($.isFunction(valueChangedFn))
+                    valueChangedFn(elm.val(), isValid());
                 buffer.value = "";
                 buffer.tempValue = "";
                 if (isUpdateStack) updateStack();
@@ -730,7 +733,9 @@
                         end: oldValue.selection.start
                     };
                     newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
-                    updateValue(newValue, newSelection, parseFn, true)
+                    if (mask.isMaskProcessed() && !mask.validateValue(newValue)) {
+                        newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '_');
+                    }
                 } else {
                     newSelection = ctrlKey ? {
                         start: 0,
@@ -740,8 +745,13 @@
                         end: oldValue.selection.start - 1
                     };
                     newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '');
-                    updateValue(newValue, newSelection, parseFn, true)
+                    if (mask.isMaskProcessed() && !mask.validateValue(newValue)) {
+                        newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '_');
+                    }
                 }
+
+                updateValue(newValue, newSelection, parseFn, true);
+
                 //todo на будущее реализовать
                 /* var indices = [];
                  for (var i = 0; i < oldValue.selection.start; i++) {
@@ -758,15 +768,21 @@
                         end: oldValue.selection.start
                     };
                     newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
-                    updateValue(newValue, newSelection, parseFn, true)
+                    if (mask.isMaskProcessed() && !mask.validateValue(newValue)) {
+                        newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '_');
+                    }
                 } else {
                     newSelection = {
                         start: oldValue.selection.start,
                         end: oldValue.selection.start
                     };
                     newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '');
-                    updateValue(newValue, newSelection, parseFn, true)
+                    if (mask.isMaskProcessed() && !mask.validateValue(newValue)) {
+                        newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '_');
+                    }
                 }
+
+                updateValue(newValue, newSelection, parseFn, true)
             }
 
             function isNeedDebounce() {
@@ -806,7 +822,6 @@
             }
 
             function setRightSelection() {
-
                 if (mask.isMaskProcessed()) {
                     var value = getValue();
                     var unmaskSelection = getSelection();
@@ -822,6 +837,16 @@
                     }
 
                 }
+            }
+
+            function isValid() {
+
+                if (mask.isMaskProcessed()) {
+                    var value = getValue();
+                    return value.length === mask.getRequiredLength() && mask.validateValue(value);
+                }
+                else
+                    return true;
 
             }
 
@@ -1009,12 +1034,29 @@
             maskComponents.forEach(function (component) {
                 value = value.replace(component, '');
             });
-            value.split('').forEach(function (chr) {
-                if (maskPatternsCopy.length && maskPatternsCopy[0].test(chr)) {
-                    valueUnmasked += chr;
-                    maskPatternsCopy.shift();
+
+            var notValidChars = [];
+            for (var i = 0; i < maskPatternsCopy.length; i++) {
+                if (!maskPatternsCopy[i].test(value[i])) {
+                    notValidChars.push(i);
                 }
+            }
+
+            var skipUnderscoreValue = Math.max.apply(Math, notValidChars) < value.length - 1;
+
+            value.split('').forEach(function (chr, i) {
+                var test = maskPatternsCopy[0].test(chr);
+                //if (maskPatternsCopy.length && test) {
+                valueUnmasked += chr;
+                maskPatternsCopy.shift();
+                /* }
+                 else if (!test && skipUnderscoreValue) {
+                 valueUnmasked += chr;
+                 maskPatternsCopy.shift();
+                 }*/
             });
+
+            valueUnmasked = valueUnmasked.replace(/(_)+$/g, '');
 
             console.info('unmasked', valueUnmasked);
 
@@ -1046,11 +1088,21 @@
             return {start: start, end: end};
         }
 
-        function validateValue(unmaskedValue) {
-            return unmaskedValue.length <= getRequiredLength() &&
-                unmaskedValue.split('').every(function (chr, i) {
-                    return maskPatterns[i].test(chr);
-                });
+        function validateValue(unmaskedValue, index) {
+
+            if (unmaskedValue.length <= getRequiredLength()) {
+
+                if (index >= 0) {
+                    return maskPatterns[index].test(unmaskedValue[index]);
+                } else {
+                    return unmaskedValue.split('').every(function (chr, i) {
+                        return maskPatterns[i].test(chr);
+                    });
+                }
+
+            }
+
+            return false;
         }
     }
 
