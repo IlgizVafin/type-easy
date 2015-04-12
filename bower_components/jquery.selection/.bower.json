@@ -1,0 +1,15 @@
+{
+  "name": "jquery.selection",
+  "homepage": "https://github.com/madapaja/jquery.selection",
+  "version": "1.0.1",
+  "_release": "1.0.1",
+  "_resolution": {
+    "type": "version",
+    "tag": "1.0.1",
+    "commit": "aaa0818e4600bbb919ba54068588e7a52c1def6b"
+  },
+  "_source": "git://github.com/madapaja/jquery.selection.git",
+  "_target": "~1.0.1",
+  "_originalSource": "jquery.selection",
+  "_direct": true
+}

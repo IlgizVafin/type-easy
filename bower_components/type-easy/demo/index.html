@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>type-easy</title>
+    <link rel="stylesheet" href="styles.css"/>
+    <script src="../bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="../bower_components/jquery.selection/src/jquery.selection.js"></script>
+    <script src="../node_modules/undo.js/undo.js"></script>
+    <script src="../jquery.type-easy.js"></script>
+</head>
+<body>
+<p>Only cyrillic</p>
+<table>
+    <tbody>
+    <tr>
+        <td><input id="ruInput" type="text"/></td>
+        <td>special symbols: "-", " ", "'". CAPS LOCK is disabled</td>
+        <td>
+            <button onclick="toggle()">toggle restrict</button>
+        </td>
+        <td>
+            <button onclick="destroy()">destroy</button>
+        </td>
+    </tr>
+    <tr>
+        <td><textarea id="ruTextarea"></textarea></td>
+        <td>special symbols: "-", " ", "'", "№", "/". UPPER CASE (SHIFT - LOWER CASE)</td>
+    </tr>
+    <tr>
+        <td><input id="ruSpecInput" type="text"/></td>
+        <td>only spec symbols: "@", "#", ".", "/", "_"</td>
+    </tr>
+    </tbody>
+</table>
+<hr/>
+<p>Only latin</p>
+<table>
+    <tbody>
+    <tr>
+        <td><input id="enInput" type="text"/></td>
+        <td>special symbols: "-", " ", "'". CAPS LOCK is disabled</td>
+    </tr>
+    <tr>
+        <td><textarea id="enTextarea"></textarea></td>
+        <td>special symbols: "-", " ", "'", "№", "/", "enter". UPPER CASE (SHIFT - LOWER CASE)</td>
+    </tr>
+    <tr>
+        <td><input id="enSpecInput" type="text"/></td>
+        <td>only spec symbols: "@", "#", ".", "/", "_"</td>
+    </tr>
+    </tbody>
+</table>
+<hr/>
+<p>RU and EN</p>
+<table>
+    <tbody>
+    <tr>
+        <td><input id="multiInput" type="text"/></td>
+        <td>special symbols: "-", " ", "'". CAPS LOCK is disabled</td>
+    </tr>
+    <tr>
+        <td><textarea id="multiTextarea"></textarea></td>
+        <td>special symbols: "-", " ", "'", "№", "/". UPPER CASE (SHIFT - LOWER CASE)</td>
+    </tr>
+    <tr>
+        <td><input id="multiSpecInput" type="text"/></td>
+        <td>only spec symbols: "@", "#", ".", "/", "_"</td>
+    </tr>
+    </tbody>
+</table>
+<hr/>
+<p>Only numbers</p>
+<table>
+    <tbody>
+    <tr>
+        <td><input id="numbersInput" type="text"/></td>
+    </tr>
+    </tbody>
+</table>
+<hr/>
+<script>
+    $('#ruInput').type_easy({
+        language: 'RU',
+        capsLockOff: true,
+        /*restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я\d]|([- '])+\1/g,*/
+        upperCaseRegex: /^[^- ']|[- '][^- ']/g,
+        maxLength: 50,
+        mask: {
+            pattern: '+7 (999) AAA-99-99 BC',
+            insertMode: false
+        },
+        undoDeep: 3
+    }, function (value, isValid) {
+        console.log(value)
+        console.warn(isValid)
+    });
+
+    /*  $('#ruTextarea').type_easy({
+     language: 'RU',
+     register: "UPPER_CASE",
+     lowerCaseByShift: true,
+     restrictRegex: /^[- '№\/]|[^- '№\/ёЁа-яА-Я]|([- '№\/])\1/g,
+     upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g
+     });*/
+    $('#ruSpecInput').type_easy({
+        language: 'RU',
+        restrictRegex: /[^@#.\/_]/g
+    });
+    $('#enInput').type_easy({
+        language: 'EN',
+        capsLockOff: true,
+        restrictRegex: /^[- ']|[^- 'a-zA-Z]|([- '])\1/g,
+        upperCaseRegex: /^[^- ']|[- '][^- ']/g
+    });
+    $('#enTextarea').type_easy({
+        language: 'EN',
+        register: "UPPER_CASE",
+        lowerCaseByShift: true,
+        restrictRegex: /^[-'№\/ \r\n]|[^- \r\n'№\/a-zA-Z]|([- \r\n'№\/])\1|[\r\n]{2,}/g,
+        upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g
+    });
+    $('#enSpecInput').type_easy({
+        language: 'EN',
+        restrictRegex: /[^@#.\/_]/g
+    });
+    $('#multiInput').type_easy({
+        capsLockOff: true,
+        restrictRegex: /^[- ']|[^- 'ёЁа-яА-Яa-zA-Z]|([- '])\1/g,
+        upperCaseRegex: /^[^- ']|[- '][^- ']/g
+    });
+    $('#multiTextarea').type_easy({
+        register: "UPPER_CASE",
+        lowerCaseByShift: true,
+        restrictRegex: /^[- '№\/]|[^- '№\/ёЁа-яА-Яa-zA-Z]|([- '№\/])\1/g,
+        upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g,
+        debounce: {
+            delay: 350,
+            ifRegex: /[HI]+/
+        }
+    });
+    $('#multiSpecInput').type_easy({
+        restrictRegex: /[^@#.\/_]/g
+    });
+    $('#numbersInput').type_easy({
+        restrictRegex: /[^\d]|[4-9]\d|3[2-9]|00|\d{3,}/g,
+        debounce: {
+            delay: 350,
+            ifRegex: /\d+/
+        }
+    });
+
+    var isOn = true;
+    function toggle() {
+        $('#ruInput').type_easy('updateSettings', {
+            restrictRegex: isOn ? '' : /^[- ']|[^- 'ёЁа-яА-Я]|([- '])+\1/g
+        });
+        isOn = !isOn;
+    }
+
+    function destroy() {
+        $('#ruInput').type_easy('destroy');
+    }
+
+</script>
+</body>
+</html>

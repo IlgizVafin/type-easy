@@ -1,0 +1,23 @@
+{
+  "name": "type-easy",
+  "version": "0.0.26",
+  "description": "Type-easy is jQuery plugin that allows you to write without switching the keyboard layout.",
+  "main": "jquery.type-easy.js",
+  "dependencies": {
+    "undo.js": "^0.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IlgizVafin/type-easy.git"
+  },
+  "author": "vafinII",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/IlgizVafin/type-easy/issues"
+  },
+  "homepage": "https://github.com/IlgizVafin/type-easy"
+}

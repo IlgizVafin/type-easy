@@ -1,0 +1,21 @@
+{
+  "name": "type-easy",
+  "version": "0.0.43",
+  "homepage": "https://github.com/IlgizVafin/type-easy",
+  "main": "jquery.type-easy.js",
+  "authors": [
+    "vafinII"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.1.3",
+    "jquery.selection": "~1.0.1"
+  }
+}

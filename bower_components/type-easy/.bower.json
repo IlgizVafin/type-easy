@@ -1,0 +1,30 @@
+{
+  "name": "type-easy",
+  "homepage": "https://github.com/IlgizVafin/type-easy",
+  "main": "jquery.type-easy.js",
+  "authors": [
+    "vafinII"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.1.3",
+    "jquery.selection": "~1.0.1"
+  },
+  "_release": "d4443ba944",
+  "_resolution": {
+    "type": "branch",
+    "branch": "feature/mask",
+    "commit": "d4443ba9446a3b195b4fc4ce1d70d5d4a6f0ba8f"
+  },
+  "_source": "git://github.com/IlgizVafin/type-easy.git",
+  "_target": "feature/mask",
+  "_originalSource": "type-easy",
+  "_direct": true
+}
