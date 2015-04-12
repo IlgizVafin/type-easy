@@ -601,7 +601,7 @@
 
                 //validate masked value
                 //todo коcяк в валидации!!!!!
-                if (mask.isMaskProcessed() && !mask.validateValue(newValue, startSelection))
+                if (mask.isMaskProcessed() && !mask.validateValue(newValue, true))
                     return false;
 
                 if (caretPosition === newValue.length) {
@@ -1088,22 +1088,36 @@
             return {start: start, end: end};
         }
 
-        function validateValue(unmaskedValue, index) {
+        function validateValue(unmaskedValue, emptyIsValid) {
 
             if (unmaskedValue.length <= getRequiredLength()) {
 
-                if (index >= 0) {
-                    return maskPatterns[index].test(unmaskedValue[index]);
-                } else {
-                    return unmaskedValue.split('').every(function (chr, i) {
-                        return maskPatterns[i].test(chr);
-                    });
-                }
+                return unmaskedValue.split('').every(function (chr, i) {
+                    var test = maskPatterns[i].test(chr);
+                    return test || (chr === '_' && emptyIsValid);
+                });
 
             }
 
             return false;
         }
+
+        /*function validateValue(unmaskedValue, index) {
+
+         if (unmaskedValue.length <= getRequiredLength()) {
+
+         if (index >= 0) {
+         return maskPatterns[index].test(unmaskedValue[index]);
+         } else {
+         return unmaskedValue.split('').every(function (chr, i) {
+         return maskPatterns[i].test(chr);
+         });
+         }
+
+         }
+
+         return false;
+         }*/
     }
 
 })(window.jQuery);
