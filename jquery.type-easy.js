@@ -563,8 +563,10 @@
 
                 if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char))
                     return false;
+
                 e.preventDefault();
                 e.stopPropagation();
+
                 var selection = getSelection(),
                     startSelection = selection.start + buffer.tempValue.length,
                     endSelection = buffer.tempValue.length > 0 ? startSelection : selection.end,
@@ -573,6 +575,7 @@
                         start: caretPosition,
                         end: caretPosition
                     };
+
                 if (!settings.capsLockOff) {
                     if (originChar.toUpperCase() === originChar && originChar.toLowerCase() !== originChar && !e.shiftKey) {
                         char = char.toUpperCase();
@@ -580,19 +583,21 @@
                         char = char.toLowerCase();
                     }
                 }
+
                 if (settings.register == "UPPER_CASE") {
                     char = char.toUpperCase();
                 } else if (settings.register == "LOWER_CASE") {
                     char = char.toLowerCase();
                 }
+
                 if (settings.lowerCaseByShift && e.shiftKey) {
                     char = char.toLowerCase();
                 }
+
                 buffer.value = buffer.value || getValue();
-                //insert mode if mask exist and value is full
-                if (mask.isMaskProcessed() && (settings.mask.insertMode && buffer.value.length === mask.getRequiredLength() || buffer.value[endSelection] === '_'))
-                    endSelection++;
+
                 var newValue = buffer.value.replaceAt(startSelection, endSelection, char);
+
                 if (settings.restrictRegex) {
                     var tempArr,
                         restrict = false,
@@ -603,62 +608,34 @@
                     if (restrict) return false;
                 }
 
-
                 if (mask.isMaskProcessed()) {
 
                     var range = mask.getCurrentRange(startSelection);
 
+                    //caret position out of available ranges
                     if (!range)
                         return false;
 
-                    var subStr = buffer.value.slice(range.start, range.end + 1); //end включительно
-                    var offset = startSelection - range.start;
+                    var subStr = buffer.value.slice(range.start, range.end + 1); //end incl.
+                    var offset = startSelection - range.start; //offset of caret pos
 
+                    //can add insert mode (replace cur char by new)
                     var newSubStr = subStr.replaceAt(offset, subStr[offset] === '_' ? offset + 1 : offset, char);
 
-
+                    //check if sub str length more than range length
                     if (newSubStr.replace(/_+$/, '').length > range.end - range.start + 1) {
-                        console.warn('not valid')
+                        console.warn('not valid');
                         return false;
                     }
 
+                    //slice underscore at the end
                     newSubStr = newSubStr.slice(0, range.end - range.start + 1);
 
+                    //recalc newValue
                     newValue = buffer.value.replaceAt(range.start, range.end + 1, newSubStr);
 
-                    /* if (buffer.value[range.end] === '_') {
-                     newValue = buffer.value.replaceAt(range.end, range.end + 1, '').replaceAt(startSelection, endSelection, char)
-                     }
-
-                     newValue = mask.replaceErrorByUnderscore(newValue);*/
-
-                    /*var oldSubStr = buffer.value.slice(range.start, range.end);
-                     var curSubStr = newValue.slice(range.start, range.end);*/
                 }
 
-
-                //validate masked value
-                //todo коcяк в валидации!!!!!
-                /*  if (mask.isMaskProcessed()) {
-
-                 //проверяем на возможность сдвинуть значение вправо
-                 if (newValue > mask.getRequiredLength()) {
-
-                 } else if (mask.validateValue(newValue, true)) {
-                 return false;
-                 }
-
-                 // && !mask.validateValue(newValue, true)
-                 return false;
-                 }*/
-
-                /* if (mask.isMaskProcessed()) {
-
-                 var res = mask.validateFragment(char, startSelection);
-
-                 if (!res)
-                 return false;
-                 }*/
                 if (mask.isMaskProcessed() && !mask.validateValue(newValue, true)) {
                     return false;
                 }
@@ -676,12 +653,14 @@
                         });
                     }
                 }
+
                 buffer.tempValue += char;
                 buffer.value = newValue;
                 selection = {
                     start: selection.start,
                     end: selection.start + buffer.tempValue.length
                 };
+
                 if (isNeedDebounce() && settings.debounce.ifRegex.test(buffer.tempValue)) {
                     debounceUpdateFn(buffer.value, selection, parseFn, true);
                 } else {
