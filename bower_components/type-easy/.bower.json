@@ -17,11 +17,11 @@
     "jquery": "~2.1.3",
     "jquery.selection": "~1.0.1"
   },
-  "_release": "d33b162ead",
+  "_release": "99f62fccff",
   "_resolution": {
     "type": "branch",
     "branch": "feature/mask",
-    "commit": "d33b162ead48c39da50602e27c3e7472c90bca69"
+    "commit": "99f62fccff468eea7e49e80c0fcd665f3647ab5d"
   },
   "_source": "git://github.com/IlgizVafin/type-easy.git",
   "_target": "feature/mask",
