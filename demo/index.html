@@ -91,18 +91,20 @@
             insertMode: false
         },
         undoDeep: 3
-    }, function (value, isValid) {
-        console.log(value)
-        console.warn(isValid)
     });
 
-    /*  $('#ruTextarea').type_easy({
-     language: 'RU',
-     register: "UPPER_CASE",
-     lowerCaseByShift: true,
-     restrictRegex: /^[- '№\/]|[^- '№\/ёЁа-яА-Я]|([- '№\/])\1/g,
-     upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g
-     });*/
+    $('#ruTextarea').type_easy({
+        language: 'RU',
+        register: "UPPER_CASE",
+        lowerCaseByShift: true,
+        /*restrictRegex: /^[- '№\/]|[^- '№\/ёЁа-яА-Я]|([- '№\/])\1/g,*/
+        upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g,
+        mask: {
+            pattern: '+7 (999) 999-99-99',
+            insertMode: false
+        }
+    });
+
     $('#ruSpecInput').type_easy({
         language: 'RU',
         restrictRegex: /[^@#.\/_]/g

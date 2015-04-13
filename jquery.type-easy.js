@@ -1,6 +1,6 @@
-//todo 1. selection by shift arrow and try to replace selected chars
+//todo 1. selection by shift arrow and try to replace selected chars - done
 //todo 2. replace char bu underscore when delete or backspace
-//todo 3. think about autoplacing curcor position
+//todo 3. think about autoplacing curcor position - disable
 //todo 4. replace underscore when send to client
 (function ($) {
     var defaults = {
@@ -610,34 +610,45 @@
 
                 if (mask.isMaskProcessed()) {
 
-                    var range = mask.getCurrentRange(startSelection);
+                    var curRange = mask.getRange(startSelection);
 
                     //caret position out of available ranges
-                    if (!range)
+                    if (!curRange)
                         return false;
 
-                    var subStr = buffer.value.slice(range.start, range.end + 1); //end incl.
-                    var offset = startSelection - range.start; //offset of caret pos
+                    var rangeLength = curRange.end - curRange.start + 1;
+
+                    //underscore right chars
+                    var bufferValue = buffer.value.replaceRange(curRange.end, endSelection, '_');
+
+                    var subStr = bufferValue.slice(curRange.start, curRange.end + 1); //end incl.
+                    var from = startSelection - curRange.start; //offset of caret pos
+                    var to = subStr[from] === '_' ?
+                        (from + 1) :
+                        (from + endSelection - startSelection);
 
                     //can add insert mode (replace cur char by new)
-                    var newSubStr = subStr.replaceAt(offset, subStr[offset] === '_' ? offset + 1 : offset, char);
+                    var newSubStr = subStr.replaceAt(from, to, char);
 
                     //check if sub str length more than range length
-                    if (newSubStr.replace(/_+$/, '').length > range.end - range.start + 1) {
-                        console.warn('not valid');
+                    if (newSubStr.replace(/_+$/, '').length > rangeLength)
                         return false;
-                    }
 
                     //slice underscore at the end
-                    newSubStr = newSubStr.slice(0, range.end - range.start + 1);
+                    newSubStr = newSubStr.slice(0, rangeLength);
+
+                    //add underscore at the end
+                    while (newSubStr.length < rangeLength) {
+                        newSubStr += '_';
+                    }
 
                     //recalc newValue
-                    newValue = buffer.value.replaceAt(range.start, range.end + 1, newSubStr);
+                    newValue = bufferValue.replaceAt(curRange.start, curRange.end + 1, newSubStr);
 
-                }
-
-                if (mask.isMaskProcessed() && !mask.validateValue(newValue, true)) {
-                    return false;
+                    //true - underscore is valid char
+                    if (!mask.validateValue(newValue, true)) {
+                        return false;
+                    }
                 }
 
                 if (caretPosition === newValue.length) {
@@ -667,19 +678,19 @@
                     updateValue(buffer.value, selection, parseFn, true);
                 }
             });
-            elm.bind('keyup.type_easy', function (e) {
+            /*elm.bind('keyup.type_easy', function (e) {
 
-                var selection = elm.selection('getPos');
+             var selection = elm.selection('getPos');
 
-                //value is selected
-                if (selection.start === 0 && selection.end === elm.val().length)
-                    return;
+             //value is selected
+             if (selection.start === 0 && selection.end === elm.val().length)
+             return;
 
-                setRightSelection();
-            });
+             setRightSelection();
+             });*/
             elm.bind('input.type_easy propertychange.type_easy', function () {
                 if ($.isFunction(valueChangedFn))
-                    valueChangedFn(elm.val(), isValid());
+                    valueChangedFn(unmaskedValue(getValue()), isValid());
                 setDefaultState();
                 updateStack();
             });
@@ -700,13 +711,16 @@
                     elm.val(mask.unmaskValue(elm.val()) ? elm.val() : '');
                 }
             });
-            elm.bind('click.type_easy', setRightSelection);
+            //elm.bind('click.type_easy', setRightSelection);
 
             function updateValue(value, selection, parseFn, isUpdateStack) {
                 var settings = getSettings(),
                     newSelection;
                 if ($.isFunction(parseFn)) {
-                    var parsedValue = parseFn(value, selection, elm[0]);
+
+                    var unmasked = unmaskedValue(value);
+
+                    var parsedValue = parseFn(unmasked, selection, elm[0]);
                     if (parsedValue !== null && parsedValue !== undefined) {
                         value = parsedValue.value;
                         newSelection = {
@@ -733,7 +747,7 @@
                     setValue(value, newSelection);
                 }
                 if ($.isFunction(valueChangedFn))
-                    valueChangedFn(elm.val(), isValid());
+                    valueChangedFn(unmaskedValue(getValue()), isValid());
                 buffer.value = "";
                 buffer.tempValue = "";
                 if (isUpdateStack) updateStack();
@@ -770,11 +784,30 @@
                         start: oldValue.selection.start,
                         end: oldValue.selection.start
                     };
-                    newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
-                    if (mask.isMaskProcessed() && !mask.validateValue(newValue)) {
-                        newValue = mask.replaceErrorByUnderscore(newValue);
-                        //newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '_');
+
+                    if (mask.isMaskProcessed()) {
+
+                        var curRange = mask.getRange(oldValue.selection.start);
+
+                        //caret position out of available ranges
+                        if (!curRange)
+                            return false;
+
+                        //underscore right chars
+                        newValue = buffer.value.replaceRange(curRange.end, oldValue.selection.end, '_');
+
+                        if (oldValue.selection.end < curRange.end) {
+
+                        } else {
+                            newValue = newValue.replaceRange(oldValue.selection.start, curRange.end, '_');
+                        }
+
+                        //newValue = mask.replaceErrorByUnderscore(newValue);
                     }
+                    else {
+                        newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
+                    }
+
                 } else {
                     newSelection = ctrlKey ? {
                         start: 0,
@@ -783,12 +816,13 @@
                         start: oldValue.selection.start - 1,
                         end: oldValue.selection.start - 1
                     };
-                    newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '');
-                    if (mask.isMaskProcessed() && !mask.validateValue(newValue)) {
 
-                        newValue = mask.replaceErrorByUnderscore(newValue);
+                    if (mask.isMaskProcessed()) {
+                        var curRange = mask.getRange(newSelection.start);
 
-                        //newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '_');
+
+                    } else {
+                        newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '');
                     }
                 }
 
@@ -847,6 +881,10 @@
                 return mask.isMaskProcessed() ? mask.unmaskValue(elm.val()) : elm.val();
             }
 
+            function unmaskedValue(value) {
+                return mask.isMaskProcessed() ? value.replace(/[_]/g, '') : value;
+            }
+
             function setValue(value, selection) {
                 elm.val(value);
                 setSelection(selection);
@@ -894,6 +932,13 @@
 
             }
 
+            function underscore(value, start, end) {
+                var bufferValueCopy = value.slice();
+                while ((end--) > start) {
+                    bufferValueCopy = bufferValueCopy.replaceAt(end, end + 1, '_')
+                }
+            }
+
             return elm;
         },
         updateSettings: function (options) {
@@ -933,6 +978,16 @@
         return this.substr(0, start) + character + this.substr(end);
     };
 
+    String.prototype.replaceRange = function (start, end, character) {
+        var valueCopy = this;
+
+        while ((end--) > start) {
+            valueCopy = valueCopy.replaceAt(end, end + 1, '_')
+        }
+
+        return valueCopy;
+    };
+
     function debounce(func, wait, immediate) {
         var timeout;
         return function () {
@@ -960,7 +1015,7 @@
         this.getSelection = getSelection;
         this.getUnmaskedSelection = getUnmaskedSelection;
         this.validateValue = validateValue;
-        this.getCurrentRange = getCurrentRange;
+        this.getRange = getRange;
         this.replaceErrorByUnderscore = replaceErrorByUnderscore;
 
         var maskProcessed = false;
@@ -1151,7 +1206,10 @@
 
             var end = maskCaretMap.indexOf(selection.end);
 
-            return {start: start !== -1 ? start : maxCaretPos, end: end !== -1 ? end : maxCaretPos};
+            return {
+                start: start !== -1 ? start : maskCaretMap.length - 1,
+                end: end !== -1 ? end : maskCaretMap.length - 1
+            };
         }
 
         function getSelection(selection) {
@@ -1198,13 +1256,11 @@
             return unmaskedValueCopy;
         }
 
-        function getCurrentRange(index) {
+        function getRange(index) {
 
-            var range = groupedMaskComponents.filter(function (group) {
+            return groupedMaskComponents.filter(function (group) {
                 return index >= group.start && index <= group.end;
             })[0];
-
-            return range;
 
         }
     }
