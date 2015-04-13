@@ -1,4 +1,3 @@
-
 //todo 1. selection by shift arrow and try to replace selected chars
 //todo 2. move char when delete or backspace
 //todo 3. think about autoplacing curcor position
@@ -738,7 +737,8 @@
                     };
                     newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
                     if (mask.isMaskProcessed() && !mask.validateValue(newValue)) {
-                        newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '_');
+                        newValue = mask.replaceErrorByUnderscore(newValue);
+                        //newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '_');
                     }
                 } else {
                     newSelection = ctrlKey ? {
@@ -750,7 +750,10 @@
                     };
                     newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '');
                     if (mask.isMaskProcessed() && !mask.validateValue(newValue)) {
-                        newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '_');
+
+                        newValue = mask.replaceErrorByUnderscore(newValue);
+
+                        //newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '_');
                     }
                 }
 
@@ -773,7 +776,8 @@
                     };
                     newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
                     if (mask.isMaskProcessed() && !mask.validateValue(newValue)) {
-                        newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '_');
+                        newValue = mask.replaceErrorByUnderscore(newValue);
+                        //newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '_');
                     }
                 } else {
                     newSelection = {
@@ -782,7 +786,8 @@
                     };
                     newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '');
                     if (mask.isMaskProcessed() && !mask.validateValue(newValue)) {
-                        newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '_');
+                        newValue = mask.replaceErrorByUnderscore(newValue);
+                        //newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '_');
                     }
                 }
 
@@ -920,6 +925,7 @@
         this.getSelection = getSelection;
         this.getUnmaskedSelection = getUnmaskedSelection;
         this.validateValue = validateValue;
+        this.replaceErrorByUnderscore = replaceErrorByUnderscore;
 
         var maskProcessed = false;
         var maskCaretMap, maskPatterns, maskPlaceholder,
@@ -1104,6 +1110,27 @@
             }
 
             return false;
+        }
+
+        function replaceErrorByUnderscore(unmaskedValue, start) {
+
+            if (!start)
+                start = 0;
+
+            var unmaskedValueCopy = unmaskedValue.slice(),
+                chars = unmaskedValue.split('');
+
+            for (var i = start; i < chars.length; i++) {
+                var test = maskPatterns[i].test(chars[i]) || chars[i] === '_';
+
+                if (!test) {
+                    unmaskedValueCopy = unmaskedValueCopy.replaceAt(i, i, '_');
+                    unmaskedValueCopy = replaceErrorByUnderscore(unmaskedValueCopy, i);
+                    break;
+                }
+            }
+
+            return unmaskedValueCopy;
         }
     }
 
