@@ -1,6 +1,7 @@
 //todo 1. selection by shift arrow and try to replace selected chars
-//todo 2. move char when delete or backspace
+//todo 2. replace char bu underscore when delete or backspace
 //todo 3. think about autoplacing curcor position
+//todo 4. replace underscore when send to client
 (function ($) {
     var defaults = {
         language: 'DEFAULT', //RU/EN
@@ -538,7 +539,7 @@
                     return false;
 
                 //prevent, if ctrl+key mapping not exist
-                if (e.keyCode !== 17 && !char && e.ctrlKey)
+                if (!/^(17|37|39)$/.test(e.keyCode) && !char && e.ctrlKey)
                     return false;
 
                 isNonPrintable = (e.keyCode !== 17 && !char && new RegExp(moduleSettings.nonPrintableKeysRegex.source, 'g').test(e.keyCode));
@@ -602,10 +603,65 @@
                     if (restrict) return false;
                 }
 
+
+                if (mask.isMaskProcessed()) {
+
+                    var range = mask.getCurrentRange(startSelection);
+
+                    if (!range)
+                        return false;
+
+                    var subStr = buffer.value.slice(range.start, range.end + 1); //end включительно
+                    var offset = startSelection - range.start;
+
+                    var newSubStr = subStr.replaceAt(offset, subStr[offset] === '_' ? offset + 1 : offset, char);
+
+
+                    if (newSubStr.replace(/_+$/, '').length > range.end - range.start + 1) {
+                        console.warn('not valid')
+                        return false;
+                    }
+
+                    newSubStr = newSubStr.slice(0, range.end - range.start + 1);
+
+                    newValue = buffer.value.replaceAt(range.start, range.end + 1, newSubStr);
+
+                    /* if (buffer.value[range.end] === '_') {
+                     newValue = buffer.value.replaceAt(range.end, range.end + 1, '').replaceAt(startSelection, endSelection, char)
+                     }
+
+                     newValue = mask.replaceErrorByUnderscore(newValue);*/
+
+                    /*var oldSubStr = buffer.value.slice(range.start, range.end);
+                     var curSubStr = newValue.slice(range.start, range.end);*/
+                }
+
+
                 //validate masked value
                 //todo коcяк в валидации!!!!!
-                if (mask.isMaskProcessed() && !mask.validateValue(newValue, true))
+                /*  if (mask.isMaskProcessed()) {
+
+                 //проверяем на возможность сдвинуть значение вправо
+                 if (newValue > mask.getRequiredLength()) {
+
+                 } else if (mask.validateValue(newValue, true)) {
+                 return false;
+                 }
+
+                 // && !mask.validateValue(newValue, true)
+                 return false;
+                 }*/
+
+                /* if (mask.isMaskProcessed()) {
+
+                 var res = mask.validateFragment(char, startSelection);
+
+                 if (!res)
+                 return false;
+                 }*/
+                if (mask.isMaskProcessed() && !mask.validateValue(newValue, true)) {
                     return false;
+                }
 
                 if (caretPosition === newValue.length) {
                     if (settings.upperCaseRegex) {
@@ -925,11 +981,12 @@
         this.getSelection = getSelection;
         this.getUnmaskedSelection = getUnmaskedSelection;
         this.validateValue = validateValue;
+        this.getCurrentRange = getCurrentRange;
         this.replaceErrorByUnderscore = replaceErrorByUnderscore;
 
         var maskProcessed = false;
         var maskCaretMap, maskPatterns, maskPlaceholder,
-            minRequiredLength, maskComponents;
+            minRequiredLength, maskComponents, groupedMaskComponents;
 
         processRawMask();
 
@@ -977,6 +1034,7 @@
             maskCaretMap.push(maskCaretMap.slice().pop() + 1);
 
             maskComponents = getMaskComponents();
+            groupedMaskComponents = groupMaskPatterns();
             maskProcessed = maskCaretMap.length > 1 ? true : false;
         }
 
@@ -1004,6 +1062,39 @@
         // it in the unmaskValue() preprocessing.
         function getMaskComponents() {
             return maskPlaceholder.replace(/[_]+/g, '_').replace(/([^_]+)([a-zA-Zа-яА-ЯёЁ0-9])([^_])/g, '$1$2_$3').split('_');
+        }
+
+        function groupMaskPatterns() {
+
+            var groupedMaskPatterns = [];
+
+            maskPatterns.forEach(function (mask) {
+
+                if (!groupedMaskPatterns.length) {
+                    groupedMaskPatterns.push({
+                        start: 0,
+                        end: 0,
+                        mask: mask
+                    })
+                } else {
+                    var last = groupedMaskPatterns[groupedMaskPatterns.length - 1];
+
+                    if (last.mask === mask) {
+                        last.end++;
+                    } else {
+                        groupedMaskPatterns.push({
+                            start: last.end + 1,
+                            end: last.end + 1,
+                            mask: mask
+                        })
+                    }
+
+                }
+
+            });
+
+            return groupedMaskPatterns;
+
         }
 
         function isMaskProcessed() {
@@ -1052,21 +1143,13 @@
                 }
             }
 
-            var skipUnderscoreValue = Math.max.apply(Math, notValidChars) < value.length - 1;
-
             value.split('').forEach(function (chr, i) {
-                var test = maskPatternsCopy[0].test(chr);
-                //if (maskPatternsCopy.length && test) {
                 valueUnmasked += chr;
                 maskPatternsCopy.shift();
-                /* }
-                 else if (!test && skipUnderscoreValue) {
-                 valueUnmasked += chr;
-                 maskPatternsCopy.shift();
-                 }*/
             });
 
-            valueUnmasked = valueUnmasked.replace(/(_)+$/g, '');
+            //оставил по умолчанию всегда заполненное значение
+            //valueUnmasked = valueUnmasked.replace(/(_)+$/g, '');
 
             console.info('unmasked', valueUnmasked);
 
@@ -1114,6 +1197,9 @@
 
         function replaceErrorByUnderscore(unmaskedValue, start) {
 
+            if (unmaskedValue.length > getRequiredLength())
+                return unmaskedValue;
+
             if (!start)
                 start = 0;
 
@@ -1131,6 +1217,16 @@
             }
 
             return unmaskedValueCopy;
+        }
+
+        function getCurrentRange(index) {
+
+            var range = groupedMaskComponents.filter(function (group) {
+                return index >= group.start && index <= group.end;
+            })[0];
+
+            return range;
+
         }
     }
 
