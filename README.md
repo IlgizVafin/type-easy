@@ -33,5 +33,8 @@ undoDeep: 10,
 debounce: {
     delay: 0,
     ifRegex: null
+},
+mask: {
+    pattern: ''
 }
 ```

@@ -1,7 +1,3 @@
-//todo 1. selection by shift arrow and try to replace selected chars - done
-//todo 2. replace char bu underscore when delete or backspace
-//todo 3. think about autoplacing curcor position - disable
-//todo 4. replace underscore when send to client
 (function ($) {
     var defaults = {
         language: 'DEFAULT', //RU/EN
@@ -13,8 +9,7 @@
         maxLength: -1,
         undoDeep: 10,
         mask: {
-            pattern: '',
-            insertMode: false
+            pattern: ''
         },
         debounce: {
             delay: 0,
@@ -483,13 +478,19 @@
                         this.element.val(this.oldValue.value);
                         this.element.selection('setPos', this.oldValue.selection);
                         updateValue(this.oldValue.value, this.oldValue.selection, this.parseFn);
-                        setSelection(this.oldValue.selection);
+
+                        var selection = mask.isMaskProcessed() ? mask.getMaskedSelection(this.oldValue.selection) : this.oldValue.selection;
+
+                        setSelection(selection);
                     },
                     redo: function () {
                         this.element.val(this.newValue.value);
                         this.element.selection('setPos', this.newValue.selection);
                         updateValue(this.newValue.value, this.newValue.selection, this.parseFn);
-                        setSelection(this.newValue.selection);
+
+                        var selection = mask.isMaskProcessed() ? mask.getMaskedSelection(this.newValue.selection) : this.newValue.selection;
+
+                        setSelection(selection);
                     }
                 }),
                 mask = new Mask(settings.mask.pattern || settings.mask, elm);
@@ -763,8 +764,8 @@
             function updateStack(force) {
                 var settings = getSettings();
                 var newValue = {
-                    value: elm.val(),
-                    selection: elm.selection('getPos')
+                    value: getValue(),
+                    selection: getSelection()
                 };
                 if (newValue.value !== oldValue.value || force) {
                     var command = new EditCommand(elm, oldValue, newValue, parseFn);
@@ -787,22 +788,11 @@
 
                     if (mask.isMaskProcessed()) {
 
-                        var curRange = mask.getRange(oldValue.selection.start);
+                        var selectionStart = oldValue.selection.start,
+                            selectionEnd = oldValue.selection.end;
 
-                        //caret position out of available ranges
-                        if (!curRange)
-                            return false;
+                        newValue = clearFragment(oldValue.value, selectionStart, selectionEnd);
 
-                        //underscore right chars
-                        newValue = buffer.value.replaceRange(curRange.end, oldValue.selection.end, '_');
-
-                        if (oldValue.selection.end < curRange.end) {
-
-                        } else {
-                            newValue = newValue.replaceRange(oldValue.selection.start, curRange.end, '_');
-                        }
-
-                        //newValue = mask.replaceErrorByUnderscore(newValue);
                     }
                     else {
                         newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
@@ -818,9 +808,11 @@
                     };
 
                     if (mask.isMaskProcessed()) {
-                        var curRange = mask.getRange(newSelection.start);
 
+                        var selectionStart = ctrlKey ? 0 : oldValue.selection.start - 1,
+                            selectionEnd = oldValue.selection.start;
 
+                        newValue = clearFragment(oldValue.value, selectionStart, selectionEnd);
                     } else {
                         newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '');
                     }
@@ -843,24 +835,66 @@
                         start: oldValue.selection.start,
                         end: oldValue.selection.start
                     };
-                    newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
-                    if (mask.isMaskProcessed() && !mask.validateValue(newValue)) {
-                        newValue = mask.replaceErrorByUnderscore(newValue);
-                        //newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '_');
+
+                    if (mask.isMaskProcessed()) {
+
+                        var selectionStart = oldValue.selection.start,
+                            selectionEnd = oldValue.selection.end;
+
+                        newValue = clearFragment(oldValue.value, selectionStart, selectionEnd);
+
+                    } else {
+                        newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
                     }
                 } else {
                     newSelection = {
                         start: oldValue.selection.start,
                         end: oldValue.selection.start
                     };
-                    newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '');
-                    if (mask.isMaskProcessed() && !mask.validateValue(newValue)) {
-                        newValue = mask.replaceErrorByUnderscore(newValue);
-                        //newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '_');
+
+                    if (mask.isMaskProcessed()) {
+
+                        var selectionStart = oldValue.selection.start,
+                            selectionEnd = ctrlKey ? oldValue.value.length : oldValue.selection.start + 1;
+
+                        newValue = clearFragment(oldValue.value, selectionStart, selectionEnd);
+
+                    } else {
+                        newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '');
                     }
                 }
 
                 updateValue(newValue, newSelection, parseFn, true)
+            }
+
+            function clearFragment(value, selectionStart, selectionEnd) {
+                var curRange;
+
+                while ((curRange = mask.getRange(curRange ? curRange.end + 1 : selectionStart))) {
+
+                    //out of selection
+                    if (curRange.start > selectionEnd)
+                        break;
+
+                    var rangeLength = curRange.end - curRange.start + 1;
+
+                    var subStr = value.slice(curRange.start, curRange.end + 1); //end incl.
+                    var from = selectionStart > curRange.start ? selectionStart : curRange.start;
+                    var to = selectionEnd > curRange.end ? (curRange.end + 1) : selectionEnd;
+
+                    //can add insert mode (replace cur char by new)
+                    var newSubStr = subStr.replaceAt(from - curRange.start, to - curRange.start, '');
+
+                    //add underscore at the end
+                    while (newSubStr.length < rangeLength) {
+                        newSubStr += '_';
+                    }
+
+                    //recalc newValue
+                    value = value.replaceAt(curRange.start, curRange.end + 1, newSubStr);
+                }
+
+                return value;
             }
 
             function isNeedDebounce() {
@@ -930,13 +964,6 @@
                 else
                     return true;
 
-            }
-
-            function underscore(value, start, end) {
-                var bufferValueCopy = value.slice();
-                while ((end--) > start) {
-                    bufferValueCopy = bufferValueCopy.replaceAt(end, end + 1, '_')
-                }
             }
 
             return elm;
@@ -1017,6 +1044,7 @@
         this.validateValue = validateValue;
         this.getRange = getRange;
         this.replaceErrorByUnderscore = replaceErrorByUnderscore;
+        this.getMaskedSelection = getMaskedSelection;
 
         var maskProcessed = false;
         var maskCaretMap, maskPatterns, maskPlaceholder,
@@ -1210,6 +1238,10 @@
                 start: start !== -1 ? start : maskCaretMap.length - 1,
                 end: end !== -1 ? end : maskCaretMap.length - 1
             };
+        }
+
+        function getMaskedSelection(selection){
+          return {start: maskCaretMap[selection.start], end: maskCaretMap[selection.end]}
         }
 
         function getSelection(selection) {
