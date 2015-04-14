@@ -599,7 +599,7 @@
 
                 var newValue = buffer.value.replaceAt(startSelection, endSelection, char);
 
-                if (settings.restrictRegex) {
+                if (settings.restrictRegex && !mask.isMaskProcessed()) {
                     var tempArr,
                         restrict = false,
                         regex = new RegExp(settings.restrictRegex.source, 'g');
@@ -652,19 +652,20 @@
                     }
                 }
 
-                if (caretPosition === newValue.length) {
-                    if (settings.upperCaseRegex) {
-                        newValue = newValue.replace(settings.upperCaseRegex, function () {
-                            var offset = arguments[arguments.length - 2],
-                                match = arguments[0];
-                            if (settings.lowerCaseByShift && e.shiftKey) return match;
-                            if (offset + arguments[0].length === newSelection.start) {
-                                return match.toUpperCase();
-                            }
-                            return match;
-                        });
-                    }
+                //ignore this if
+                //if (caretPosition === newValue.length) {
+                if (settings.upperCaseRegex) {
+                    newValue = newValue.replace(settings.upperCaseRegex, function () {
+                        var offset = arguments[arguments.length - 2],
+                            match = arguments[0];
+                        if (settings.lowerCaseByShift && e.shiftKey) return match;
+                        if (offset + arguments[0].length === newSelection.start) {
+                            return match.toUpperCase();
+                        }
+                        return match;
+                    });
                 }
+                //}
 
                 buffer.tempValue += char;
                 buffer.value = newValue;
@@ -915,8 +916,9 @@
                 return mask.isMaskProcessed() ? mask.unmaskValue(elm.val()) : elm.val();
             }
 
+            //remove all _ at the end and if _ not exist value is valid
             function unmaskedValue(value) {
-                return mask.isMaskProcessed() ? value.replace(/[_]/g, '') : value;
+                return mask.isMaskProcessed() ? value.replace(/[_]+$/g, '') : value;
             }
 
             function setValue(value, selection) {
@@ -959,7 +961,7 @@
 
                 if (mask.isMaskProcessed()) {
                     var value = getValue();
-                    return value.length === mask.getRequiredLength() && mask.validateValue(value);
+                    return mask.validateValue(unmaskedValue(value));
                 }
                 else
                     return true;
@@ -977,6 +979,49 @@
                 settings: $.extend({}, data.settings, options)
             });
 
+        },
+        setValue: function (value) {
+
+            var elm = $(this);
+            var data = elm.data('type_easy');
+
+            if (!data) return '';
+
+            var mask = new Mask(data.settings.mask.pattern || data.settings.mask, elm);
+
+            if (mask.isMaskProcessed()) {
+                var masked = mask.unmaskValue(value || '');
+                value = mask.maskValue(masked);
+                elm.val(value);
+            } else {
+                elm.val(value || '');
+            }
+
+            return value || '';
+        },
+        getValue: function () {
+
+            var elm = $(this);
+            var data = elm.data('type_easy');
+
+            if (!data) return;
+
+            var mask = new Mask(data.settings.mask.pattern || data.settings.mask, elm);
+
+            if (mask.isMaskProcessed()) {
+                var value = mask.unmaskValue(elm.val());
+                value = value.replace(/[_]+$/g, '');
+
+                return {
+                    value: value,
+                    isValid: mask.validateValue(value)
+                }
+            } else {
+                return {
+                    value: elm.val(),
+                    isValid: true
+                }
+            }
         },
         destroy: function () {
             return this.each(function () {
@@ -1198,13 +1243,6 @@
                 value = value.replace(component, '');
             });
 
-            var notValidChars = [];
-            for (var i = 0; i < maskPatternsCopy.length; i++) {
-                if (!maskPatternsCopy[i].test(value[i])) {
-                    notValidChars.push(i);
-                }
-            }
-
             value.split('').forEach(function (chr, i) {
                 valueUnmasked += chr;
                 maskPatternsCopy.shift();
@@ -1240,8 +1278,8 @@
             };
         }
 
-        function getMaskedSelection(selection){
-          return {start: maskCaretMap[selection.start], end: maskCaretMap[selection.end]}
+        function getMaskedSelection(selection) {
+            return {start: maskCaretMap[selection.start], end: maskCaretMap[selection.end]}
         }
 
         function getSelection(selection) {
