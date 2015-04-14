@@ -709,7 +709,7 @@
                 setDefaultState();
 
                 if (mask.isMaskProcessed()) {
-                    elm.val(mask.unmaskValue(elm.val()) ? elm.val() : '');
+                    elm.val(mask.unmaskValue(elm.val()).replace(/_+$/, '') ? elm.val() : '');
                 }
             });
             //elm.bind('click.type_easy', setRightSelection);
