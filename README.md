@@ -9,6 +9,16 @@ Keyboard layout support:
 
 > bower install type-easy
 
+### API
+
+- init(options, valueChangedFunction, parseFunction). Return $(element)
+- valueChangedFunction(value, isValid)
+- parseFunction(viewValue, selection, elm)
+- updateSettings(options).
+- setValue(value). Return masked (! if mask exist) value
+- getValue. Return value
+- desctroy
+
 ### Example
 
 ```javascript
@@ -17,7 +27,7 @@ $('#ruInput').type_easy({
     capsLockOff: true,
     restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я]|([- '])\1/g,
     upperCaseRegex: /^[^- ']|[- '][^- ']/g
-});
+}, function(value, isValid){}, function(viewValue, selection, elm){});
 ```
 
 ##### All settings

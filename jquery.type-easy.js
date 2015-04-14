@@ -1229,8 +1229,6 @@
                 }
             });
 
-            console.info('masked', valueMasked);
-
             return valueMasked;
         }
 
@@ -1250,8 +1248,6 @@
 
             //оставил по умолчанию всегда заполненное значение
             //valueUnmasked = valueUnmasked.replace(/(_)+$/g, '');
-
-            console.info('unmasked', valueUnmasked);
 
             return valueUnmasked;
         }
