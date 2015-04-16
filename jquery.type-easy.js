@@ -692,7 +692,7 @@
              });*/
             elm.bind('input.type_easy propertychange.type_easy', function () {
                 if ($.isFunction(valueChangedFn))
-                    valueChangedFn(unmaskedValue(getValue()), isValid());
+                    valueChangedFn(unmaskedValue(getValue()), isValid(), getSelection());
                 setDefaultState();
                 updateStack();
             });
@@ -749,7 +749,7 @@
                     setValue(value, newSelection);
                 }
                 if ($.isFunction(valueChangedFn))
-                    valueChangedFn(unmaskedValue(getValue()), isValid());
+                    valueChangedFn(unmaskedValue(getValue()), isValid(), selection);
                 buffer.value = "";
                 buffer.tempValue = "";
                 if (isUpdateStack) updateStack();
