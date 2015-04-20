@@ -577,12 +577,11 @@
                         end: caretPosition
                     };
 
-                if (!settings.capsLockOff) {
-                    if (originChar.toUpperCase() === originChar && originChar.toLowerCase() !== originChar && !e.shiftKey) {
-                        char = char.toUpperCase();
-                    } else if (originChar.toUpperCase() !== originChar && originChar.toLowerCase() === originChar && e.shiftKey) {
-                        char = char.toLowerCase();
-                    }
+                //caps is on
+                if (originChar.toUpperCase() === originChar && originChar.toLowerCase() !== originChar && !e.shiftKey) {
+                    char = settings.capsLockOff ? char.toLowerCase() : char.toUpperCase();
+                } else if (originChar.toUpperCase() !== originChar && originChar.toLowerCase() === originChar && e.shiftKey) {
+                    char = settings.capsLockOff ? char.toUpperCase() : char.toLowerCase();
                 }
 
                 if (settings.register == "UPPER_CASE") {
@@ -732,9 +731,9 @@
                     }
                 }
                 newSelection = newSelection || {
-                    start: selection.end,
-                    end: selection.end
-                };
+                        start: selection.end,
+                        end: selection.end
+                    };
 
                 if (settings.maxLength >= 0 && value.length > settings.maxLength) {
                     return false;
