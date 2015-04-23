@@ -458,6 +458,7 @@
                 data = elm.data('type_easy'),
                 char,
                 isNonPrintable = false,
+                altKey = false,
                 buffer = {
                     value: '',
                     tempValue: '',
@@ -536,8 +537,12 @@
                 char = helper.getChar(e, settings.language);
 
                 //prevent alt+key
-                if (e.keyCode !== 18 && e.altKey)
-                    return false;
+                if (e.altKey) {
+                    if (e.keyCode !== 18)
+                        return false;
+                    else
+                        altKey = true;
+                }
 
                 //prevent, if ctrl+key mapping not exist
                 if (!/^(17|37|39)$/.test(e.keyCode) && !char && e.ctrlKey)
@@ -552,12 +557,16 @@
             });
             elm.bind('keypress.type_easy', function (e) {
 
-                var settings = getSettings();
+                if(altKey){
+                    return (altKey = false);
+                }
 
                 if (isNonPrintable) {
                     isNonPrintable = false;
                     return;
                 }
+
+                var settings = getSettings();
 
                 var originChar = String.fromCharCode(e.keyCode || e.which);
                 char = char || originChar;
