@@ -45,6 +45,12 @@ debounce: {
     ifRegex: null
 },
 mask: {
-    pattern: ''
+    pattern: '',
+    maskDefinitions: {
+        '9': /\d/,
+        'A': /[a-zA-Zа-яА-ЯёЁ]/,
+        '*': /[a-zA-Zа-яА-ЯёЁ0-9`~!@#$%^&*()+=\-\{}\[\]:;"'\\\\|<,>.?\/№]/
+    },
+    restrictRegex: ''
 }
 ```
