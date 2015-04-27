@@ -14,7 +14,8 @@
                 '9': /\d/,
                 'A': /[a-zA-Zа-яА-ЯёЁ]/,
                 '*': /[a-zA-Zа-яА-ЯёЁ0-9`~!@#$%^&*()+=\-\{}\[\]:;"'\\\\|<,>.?\/№]/
-            }
+            },
+            restrictRegex: ''
         },
         debounce: {
             delay: 0,
@@ -607,10 +608,11 @@
 
                 var newValue = buffer.value.replaceAt(startSelection, endSelection, char);
 
-                if (settings.restrictRegex && !mask.isMaskProcessed()) {
+                if (settings.mask.restrictRegex || settings.restrictRegex) {
+
                     var tempArr,
                         restrict = false,
-                        regex = new RegExp(settings.restrictRegex.source, 'g');
+                        regex = new RegExp((settings.mask.restrictRegex || settings.restrictRegex).source, 'g');
                     while ((tempArr = regex.exec(newValue)) != null && !restrict) {
                         if ((caretPosition >= tempArr.index && caretPosition <= regex.lastIndex) || (tempArr.index === 0 && regex.lastIndex === newValue.length)) restrict = true;
                     }
