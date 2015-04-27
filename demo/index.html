@@ -87,8 +87,10 @@
         upperCaseRegex: /^[^- ']|[- '][^- ']/g,
         maxLength: 50,
         mask: {
-            pattern: '+7 (999) AA*-99-99 BC',
-            insertMode: false
+            pattern: '+7 (D99) AA*9999 BC',
+            maskDefinitions: {
+                D: /[a-zA-Zа-яА-ЯёЁ\d]/
+            }
         },
         undoDeep: 3
     });
@@ -100,8 +102,7 @@
         /*restrictRegex: /^[- '№\/]|[^- '№\/ёЁа-яА-Я]|([- '№\/])\1/g,*/
         upperCaseRegex: /^[^- '№\/]|[- '№\/][^- '№\/]/g,
         mask: {
-            pattern: '+7 (999) 999-99-99',
-            insertMode: false
+            pattern: '+7 (999) 999-99-99'
         }
     });
 

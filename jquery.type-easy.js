@@ -9,7 +9,12 @@
         maxLength: -1,
         undoDeep: 10,
         mask: {
-            pattern: ''
+            pattern: '',
+            maskDefinitions: {
+                '9': /\d/,
+                'A': /[a-zA-Zа-яА-ЯёЁ]/,
+                '*': /[a-zA-Zа-яА-ЯёЁ0-9`~!@#$%^&*()+=\-\{}\[\]:;"'\\\\|<,>.?\/№]/
+            }
         },
         debounce: {
             delay: 0,
@@ -54,12 +59,7 @@
          * 122 - F11
          * 123 - F12
          * */
-        'nonPrintableKeysRegex': /^(9|16|17|18|19|20|27|33|34|35|36|37|38|39|40|44|45|46|91|92|93|145|112|113|114|115|116|117|118|119|120|121|122|123)$/g,
-        'maskDefinitions': {
-            '9': /\d/,
-            'A': /[a-zA-Zа-яА-ЯёЁ]/,
-            '*': /[a-zA-Zа-яА-ЯёЁ0-9`~!@#$%^&*()+=\{}\[\]:;"'\\\\|<,>.?\/№]/
-        }
+        'nonPrintableKeysRegex': /^(9|16|17|18|19|20|27|33|34|35|36|37|38|39|40|44|45|46|91|92|93|145|112|113|114|115|116|117|118|119|120|121|122|123)$/g
     };
     var ru_mapTable = {
         81: 'й',
@@ -454,7 +454,7 @@
     var methods = {
         init: function (options, valueChangedFn, parseFn) {
             var elm = $(this),
-                settings = $.extend({}, defaults, options),
+                settings = $.extend(true, {}, defaults, options),
                 data = elm.data('type_easy'),
                 char,
                 isNonPrintable = false,
@@ -494,7 +494,7 @@
                         setSelection(selection);
                     }
                 }),
-                mask = new Mask(settings.mask.pattern || settings.mask, elm);
+                mask = new Mask(settings.mask, elm);
 
             if (mask.isMaskProcessed()) {
                 var masked = mask.maskValue("");
@@ -995,7 +995,7 @@
 
             if (!data) return '';
 
-            var mask = new Mask(data.settings.mask.pattern || data.settings.mask, elm);
+            var mask = new Mask(data.settings.mask, elm);
 
             if (mask.isMaskProcessed()) {
                 var masked = mask.unmaskValue(value || '');
@@ -1014,7 +1014,7 @@
 
             if (!data) return;
 
-            var mask = new Mask(data.settings.mask.pattern || data.settings.mask, elm);
+            var mask = new Mask(data.settings.mask, elm);
 
             if (mask.isMaskProcessed()) {
                 var value = mask.unmaskValue(elm.val());
@@ -1087,7 +1087,6 @@
     //core logic from https://github.com/angular-ui/ui-utils/blob/master/modules/mask/mask.js
     function Mask(mask, elm) {
 
-        this.mask = mask;
         this.getRequiredLength = getRequiredLength;
         this.maskValue = maskValue;
         this.unmaskValue = unmaskValue;
@@ -1114,20 +1113,20 @@
             maskPatterns = [];
             maskPlaceholder = '';
 
-            if (typeof mask === 'string' && mask.length) {
+            if (typeof mask.pattern === 'string' && mask.pattern.length) {
                 minRequiredLength = 0;
 
                 var isOptional = false,
                     numberOfOptionalCharacters = 0,
-                    splitMask = mask.split('');
+                    splitMask = mask.pattern.split('');
 
                 splitMask.forEach(function (chr, i) {
-                    if (moduleSettings.maskDefinitions[chr]) {
+                    if (mask.maskDefinitions[chr]) {
 
                         maskCaretMap.push(characterCount);
 
                         maskPlaceholder += getPlaceholderChar(i - numberOfOptionalCharacters);
-                        maskPatterns.push(moduleSettings.maskDefinitions[chr]);
+                        maskPatterns.push(mask.maskDefinitions[chr]);
 
                         characterCount++;
                         if (!isOptional) {
