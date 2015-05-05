@@ -495,6 +495,7 @@
                         setSelection(selection);
                     }
                 }),
+                focusTimeout = null,
                 mask = new Mask(settings.mask, elm);
 
             if (mask.isMaskProcessed()) {
@@ -558,7 +559,7 @@
             });
             elm.bind('keypress.type_easy', function (e) {
 
-                if(altKey){
+                if (altKey) {
                     return (altKey = false);
                 }
 
@@ -711,10 +712,24 @@
             });
             elm.bind('focus.type_easy', function (e) {
                 if (mask.isMaskProcessed()) {
-                    elm.val(mask.maskValue(getValue()));
+                    var value = getValue();
+
+                    elm.val(mask.maskValue(value));
+
+                    //replace underscore
+                    var tempValue = getValue(true);
+
+                    if(tempValue.length !== mask.getRequiredLength()){
+                        focusTimeout = setTimeout(function () {
+                            setSelection(mask.getMaskedSelection({start: tempValue.length, end: tempValue.length}));
+                        }, 100);
+                    }
 
                     e.preventDefault();
                 }
+            });
+            elm.bind('click.type_easy', function (e) {
+                clearTimeout(focusTimeout);
             });
             elm.bind('blur.type_easy', function () {
                 setDefaultState();
@@ -922,8 +937,8 @@
                 return data.settings || defaults;
             }
 
-            function getValue() {
-                return mask.isMaskProcessed() ? mask.unmaskValue(elm.val()) : elm.val();
+            function getValue(replaceUnderscore) {
+                return mask.isMaskProcessed() ? mask.unmaskValue(elm.val(), replaceUnderscore) : elm.val();
             }
 
             //remove all _ at the end and if _ not exist value is valid
@@ -1241,7 +1256,7 @@
             return valueMasked;
         }
 
-        function unmaskValue(value) {
+        function unmaskValue(value, replaceUnderscore) {
             var valueUnmasked = '',
                 maskPatternsCopy = maskPatterns.slice();
             // Preprocess by stripping mask components from value
@@ -1256,7 +1271,8 @@
             });
 
             //оставил по умолчанию всегда заполненное значение
-            //valueUnmasked = valueUnmasked.replace(/(_)+$/g, '');
+            if (replaceUnderscore)
+                valueUnmasked = valueUnmasked.replace(/(_)+$/g, '');
 
             return valueUnmasked;
         }
