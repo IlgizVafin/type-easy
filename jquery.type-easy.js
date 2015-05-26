@@ -719,7 +719,7 @@
                     //replace underscore
                     var tempValue = getValue(true);
 
-                    if(tempValue.length !== mask.getRequiredLength()){
+                    if (tempValue.length !== mask.getRequiredLength()) {
                         focusTimeout = setTimeout(function () {
                             setSelection(mask.getMaskedSelection({start: tempValue.length, end: tempValue.length}));
                         }, 100);
@@ -949,6 +949,8 @@
             function setValue(value, selection) {
                 elm.val(value);
                 setSelection(selection);
+
+                scrollHorizontal(selection);
             }
 
             function getSelection() {
@@ -991,6 +993,28 @@
                 else
                     return true;
 
+            }
+
+            function scrollHorizontal(selection) {
+                if (elm[0].tagName === 'INPUT') {
+                    var ruler =
+                        $('<span>',
+                            {
+                                'class': elm.attr('class'),
+                                'style': 'visibility: hidden; white-space: nowrap;'
+                            })
+                            .text(elm.val().substr(0, selection.end))
+                            .appendTo($('body'));
+
+                    var rulerW = ruler.width();
+                    var elmW = elm.width();
+
+                    if(rulerW > elmW){
+                        elm.scrollLeft(rulerW);
+                    }
+
+                    ruler.remove();
+                }
             }
 
             return elm;
