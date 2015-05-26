@@ -8,7 +8,15 @@
         lowerCaseByShift: false,
         maxLength: -1,
         undoDeep: 10,
-        mask: null,
+        mask: {
+            pattern: '',
+            maskDefinitions: {
+                '9': /\d/,
+                'A': /[a-zA-Zа-яА-ЯёЁ]/,
+                '*': /[a-zA-Zа-яА-ЯёЁ0-9`~!@#$%^&*()+=\-\{}\[\]:;"'\\\\|<,>.?\/№]/
+            },
+            restrictRegex: ''
+        },
         debounce: {
             delay: 0,
             ifRegex: null
@@ -52,12 +60,7 @@
          * 122 - F11
          * 123 - F12
          * */
-        'nonPrintableKeysRegex': /^(9|16|17|18|19|20|27|33|34|35|36|37|38|39|40|44|45|46|91|92|93|145|112|113|114|115|116|117|118|119|120|121|122|123)$/g,
-        'maskDefinitions': {
-            '9': /\d/,
-            'A': /[a-zA-Zа-яА-ЯёЁ]/,
-            '*': /[a-zA-Zа-яА-ЯёЁ0-9]/
-        }
+        'nonPrintableKeysRegex': /^(9|16|17|18|19|20|27|33|34|35|36|37|38|39|40|44|45|46|91|92|93|145|112|113|114|115|116|117|118|119|120|121|122|123)$/g
     };
     var ru_mapTable = {
         81: 'й',
@@ -452,10 +455,11 @@
     var methods = {
         init: function (options, valueChangedFn, parseFn) {
             var elm = $(this),
-                settings = $.extend({}, defaults, options),
+                settings = $.extend(true, {}, defaults, options),
                 data = elm.data('type_easy'),
                 char,
                 isNonPrintable = false,
+                altKey = false,
                 buffer = {
                     value: '',
                     tempValue: '',
@@ -476,15 +480,22 @@
                         this.element.val(this.oldValue.value);
                         this.element.selection('setPos', this.oldValue.selection);
                         updateValue(this.oldValue.value, this.oldValue.selection, this.parseFn);
-                        setSelection(this.oldValue.selection);
+
+                        var selection = mask.isMaskProcessed() ? mask.getMaskedSelection(this.oldValue.selection) : this.oldValue.selection;
+
+                        setSelection(selection);
                     },
                     redo: function () {
                         this.element.val(this.newValue.value);
                         this.element.selection('setPos', this.newValue.selection);
                         updateValue(this.newValue.value, this.newValue.selection, this.parseFn);
-                        setSelection(this.newValue.selection);
+
+                        var selection = mask.isMaskProcessed() ? mask.getMaskedSelection(this.newValue.selection) : this.newValue.selection;
+
+                        setSelection(selection);
                     }
                 }),
+                focusTimeout = null,
                 mask = new Mask(settings.mask, elm);
 
             if (mask.isMaskProcessed()) {
@@ -499,6 +510,7 @@
             }
 
             elm.bind('keydown.type_easy', function (e) {
+
                 var settings = getSettings();
 
                 oldValue = {
@@ -527,11 +539,15 @@
                 char = helper.getChar(e, settings.language);
 
                 //prevent alt+key
-                if (e.keyCode !== 18 && e.altKey)
-                    return false;
+                if (e.altKey) {
+                    if (e.keyCode !== 18)
+                        return false;
+                    else
+                        altKey = true;
+                }
 
                 //prevent, if ctrl+key mapping not exist
-                if (e.keyCode !== 17 && !char && e.ctrlKey)
+                if (!/^(17|37|39)$/.test(e.keyCode) && !char && e.ctrlKey)
                     return false;
 
                 isNonPrintable = (e.keyCode !== 17 && !char && new RegExp(moduleSettings.nonPrintableKeysRegex.source, 'g').test(e.keyCode));
@@ -543,20 +559,26 @@
             });
             elm.bind('keypress.type_easy', function (e) {
 
-                var settings = getSettings();
+                if (altKey) {
+                    return (altKey = false);
+                }
 
                 if (isNonPrintable) {
                     isNonPrintable = false;
                     return;
                 }
 
+                var settings = getSettings();
+
                 var originChar = String.fromCharCode(e.keyCode || e.which);
                 char = char || originChar;
 
                 if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char))
                     return false;
+
                 e.preventDefault();
                 e.stopPropagation();
+
                 var selection = getSelection(),
                     startSelection = selection.start + buffer.tempValue.length,
                     endSelection = buffer.tempValue.length > 0 ? startSelection : selection.end,
@@ -565,96 +587,167 @@
                         start: caretPosition,
                         end: caretPosition
                     };
-                if (!settings.capsLockOff) {
-                    if (originChar.toUpperCase() === originChar && originChar.toLowerCase() !== originChar && !e.shiftKey) {
-                        char = char.toUpperCase();
-                    } else if (originChar.toUpperCase() !== originChar && originChar.toLowerCase() === originChar && e.shiftKey) {
-                        char = char.toLowerCase();
-                    }
+
+                //caps is on
+                if (originChar.toUpperCase() === originChar && originChar.toLowerCase() !== originChar && !e.shiftKey) {
+                    char = settings.capsLockOff ? char.toLowerCase() : char.toUpperCase();
+                } else if (originChar.toUpperCase() !== originChar && originChar.toLowerCase() === originChar && e.shiftKey) {
+                    char = settings.capsLockOff ? char.toUpperCase() : char.toLowerCase();
                 }
+
                 if (settings.register == "UPPER_CASE") {
                     char = char.toUpperCase();
                 } else if (settings.register == "LOWER_CASE") {
                     char = char.toLowerCase();
                 }
+
                 if (settings.lowerCaseByShift && e.shiftKey) {
                     char = char.toLowerCase();
                 }
+
                 buffer.value = buffer.value || getValue();
-                //insert mode if mask exist and value is full
-                if (mask.isMaskProcessed() && buffer.value.length === mask.getRequiredLength())
-                    endSelection++;
+
                 var newValue = buffer.value.replaceAt(startSelection, endSelection, char);
-                if (settings.restrictRegex) {
+
+                if (settings.mask.restrictRegex || settings.restrictRegex) {
+
                     var tempArr,
                         restrict = false,
-                        regex = new RegExp(settings.restrictRegex.source, 'g');
+                        regex = new RegExp((settings.mask.restrictRegex || settings.restrictRegex).source, 'g');
                     while ((tempArr = regex.exec(newValue)) != null && !restrict) {
                         if ((caretPosition >= tempArr.index && caretPosition <= regex.lastIndex) || (tempArr.index === 0 && regex.lastIndex === newValue.length)) restrict = true;
                     }
                     if (restrict) return false;
                 }
 
-                //validate masked value
-                if (mask.isMaskProcessed() && !mask.validateValue(newValue))
-                    return false;
+                if (mask.isMaskProcessed()) {
 
-                if (caretPosition === newValue.length) {
-                    if (settings.upperCaseRegex) {
-                        newValue = newValue.replace(settings.upperCaseRegex, function () {
-                            var offset = arguments[arguments.length - 2],
-                                match = arguments[0];
-                            if (settings.lowerCaseByShift && e.shiftKey) return match;
-                            if (offset + arguments[0].length === newSelection.start) {
-                                return match.toUpperCase();
-                            }
-                            return match;
-                        });
+                    var curRange = mask.getRange(startSelection);
+
+                    //caret position out of available ranges
+                    if (!curRange)
+                        return false;
+
+                    var rangeLength = curRange.end - curRange.start + 1;
+
+                    //underscore right chars
+                    var bufferValue = buffer.value.replaceRange(curRange.end, endSelection, '_');
+
+                    var subStr = bufferValue.slice(curRange.start, curRange.end + 1); //end incl.
+                    var from = startSelection - curRange.start; //offset of caret pos
+                    var to = subStr[from] === '_' ?
+                        (from + 1) :
+                        (from + endSelection - startSelection);
+
+                    //can add insert mode (replace cur char by new)
+                    var newSubStr = subStr.replaceAt(from, to, char);
+
+                    //check if sub str length more than range length
+                    if (newSubStr.replace(/_+$/, '').length > rangeLength)
+                        return false;
+
+                    //slice underscore at the end
+                    newSubStr = newSubStr.slice(0, rangeLength);
+
+                    //add underscore at the end
+                    while (newSubStr.length < rangeLength) {
+                        newSubStr += '_';
+                    }
+
+                    //recalc newValue
+                    newValue = bufferValue.replaceAt(curRange.start, curRange.end + 1, newSubStr);
+
+                    //true - underscore is valid char
+                    if (!mask.validateValue(newValue, true)) {
+                        return false;
                     }
                 }
+
+                //ignore this if
+                //if (caretPosition === newValue.length) {
+                if (settings.upperCaseRegex) {
+                    newValue = newValue.replace(settings.upperCaseRegex, function () {
+                        var offset = arguments[arguments.length - 2],
+                            match = arguments[0];
+                        if (settings.lowerCaseByShift && e.shiftKey) return match;
+                        if (offset + arguments[0].length === newSelection.start) {
+                            return match.toUpperCase();
+                        }
+                        return match;
+                    });
+                }
+                //}
+
                 buffer.tempValue += char;
                 buffer.value = newValue;
                 selection = {
                     start: selection.start,
                     end: selection.start + buffer.tempValue.length
                 };
+
                 if (isNeedDebounce() && settings.debounce.ifRegex.test(buffer.tempValue)) {
                     debounceUpdateFn(buffer.value, selection, parseFn, true);
                 } else {
                     updateValue(buffer.value, selection, parseFn, true);
                 }
             });
-            elm.bind('keyup.type_easy', setRightSelection);
+            /*elm.bind('keyup.type_easy', function (e) {
+
+             var selection = elm.selection('getPos');
+
+             //value is selected
+             if (selection.start === 0 && selection.end === elm.val().length)
+             return;
+
+             setRightSelection();
+             });*/
             elm.bind('input.type_easy propertychange.type_easy', function () {
-                if ($.isFunction(valueChangedFn)) valueChangedFn(elm.val());
+                if ($.isFunction(valueChangedFn))
+                    valueChangedFn(unmaskedValue(getValue()), isValid(), getSelection());
                 setDefaultState();
                 updateStack();
             });
             elm.bind('paste.type_easy dragover.type_easy dragstart.type_easy drop.type_easy', function (e) {
                 e.preventDefault();
             });
-            elm.bind('focus.type_easy', function () {
-                return;
-
-                //todo на время разработки
+            elm.bind('focus.type_easy', function (e) {
                 if (mask.isMaskProcessed()) {
-                    elm.val(mask.maskValue(getValue()));
+                    var value = getValue();
+
+                    elm.val(mask.maskValue(value));
+
+                    //replace underscore
+                    var tempValue = getValue(true);
+
+                    if(tempValue.length !== mask.getRequiredLength()){
+                        focusTimeout = setTimeout(function () {
+                            setSelection(mask.getMaskedSelection({start: tempValue.length, end: tempValue.length}));
+                        }, 100);
+                    }
+
+                    e.preventDefault();
                 }
+            });
+            elm.bind('click.type_easy', function (e) {
+                clearTimeout(focusTimeout);
             });
             elm.bind('blur.type_easy', function () {
                 setDefaultState();
 
                 if (mask.isMaskProcessed()) {
-                    elm.val(mask.unmaskValue(elm.val()) ? elm.val() : '');
+                    elm.val(mask.unmaskValue(elm.val()).replace(/_+$/, '') ? elm.val() : '');
                 }
             });
-            elm.bind('click.type_easy', setRightSelection);
+            //elm.bind('click.type_easy', setRightSelection);
 
             function updateValue(value, selection, parseFn, isUpdateStack) {
                 var settings = getSettings(),
                     newSelection;
                 if ($.isFunction(parseFn)) {
-                    var parsedValue = parseFn(value, selection, elm[0]);
+
+                    var unmasked = unmaskedValue(value);
+
+                    var parsedValue = parseFn(unmasked, selection, elm[0]);
                     if (parsedValue !== null && parsedValue !== undefined) {
                         value = parsedValue.value;
                         newSelection = {
@@ -664,9 +757,9 @@
                     }
                 }
                 newSelection = newSelection || {
-                    start: selection.end,
-                    end: selection.end
-                };
+                        start: selection.end,
+                        end: selection.end
+                    };
 
                 if (settings.maxLength >= 0 && value.length > settings.maxLength) {
                     return false;
@@ -680,7 +773,8 @@
 
                     setValue(value, newSelection);
                 }
-                if ($.isFunction(valueChangedFn)) valueChangedFn(elm.val());
+                if ($.isFunction(valueChangedFn))
+                    valueChangedFn(unmaskedValue(getValue()), isValid(), selection);
                 buffer.value = "";
                 buffer.tempValue = "";
                 if (isUpdateStack) updateStack();
@@ -696,8 +790,8 @@
             function updateStack(force) {
                 var settings = getSettings();
                 var newValue = {
-                    value: elm.val(),
-                    selection: elm.selection('getPos')
+                    value: getValue(),
+                    selection: getSelection()
                 };
                 if (newValue.value !== oldValue.value || force) {
                     var command = new EditCommand(elm, oldValue, newValue, parseFn);
@@ -717,8 +811,19 @@
                         start: oldValue.selection.start,
                         end: oldValue.selection.start
                     };
-                    newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
-                    updateValue(newValue, newSelection, parseFn, true)
+
+                    if (mask.isMaskProcessed()) {
+
+                        var selectionStart = oldValue.selection.start,
+                            selectionEnd = oldValue.selection.end;
+
+                        newValue = clearFragment(oldValue.value, selectionStart, selectionEnd);
+
+                    }
+                    else {
+                        newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
+                    }
+
                 } else {
                     newSelection = ctrlKey ? {
                         start: 0,
@@ -727,9 +832,20 @@
                         start: oldValue.selection.start - 1,
                         end: oldValue.selection.start - 1
                     };
-                    newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '');
-                    updateValue(newValue, newSelection, parseFn, true)
+
+                    if (mask.isMaskProcessed()) {
+
+                        var selectionStart = ctrlKey ? 0 : oldValue.selection.start - 1,
+                            selectionEnd = oldValue.selection.start;
+
+                        newValue = clearFragment(oldValue.value, selectionStart, selectionEnd);
+                    } else {
+                        newValue = oldValue.value.replaceAt(ctrlKey ? 0 : oldValue.selection.start - 1, oldValue.selection.start, '');
+                    }
                 }
+
+                updateValue(newValue, newSelection, parseFn, true);
+
                 //todo на будущее реализовать
                 /* var indices = [];
                  for (var i = 0; i < oldValue.selection.start; i++) {
@@ -745,16 +861,66 @@
                         start: oldValue.selection.start,
                         end: oldValue.selection.start
                     };
-                    newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
-                    updateValue(newValue, newSelection, parseFn, true)
+
+                    if (mask.isMaskProcessed()) {
+
+                        var selectionStart = oldValue.selection.start,
+                            selectionEnd = oldValue.selection.end;
+
+                        newValue = clearFragment(oldValue.value, selectionStart, selectionEnd);
+
+                    } else {
+                        newValue = oldValue.value.replaceAt(oldValue.selection.start, oldValue.selection.end, '');
+                    }
                 } else {
                     newSelection = {
                         start: oldValue.selection.start,
                         end: oldValue.selection.start
                     };
-                    newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '');
-                    updateValue(newValue, newSelection, parseFn, true)
+
+                    if (mask.isMaskProcessed()) {
+
+                        var selectionStart = oldValue.selection.start,
+                            selectionEnd = ctrlKey ? oldValue.value.length : oldValue.selection.start + 1;
+
+                        newValue = clearFragment(oldValue.value, selectionStart, selectionEnd);
+
+                    } else {
+                        newValue = oldValue.value.replaceAt(oldValue.selection.start, ctrlKey ? oldValue.value.length : oldValue.selection.start + 1, '');
+                    }
                 }
+
+                updateValue(newValue, newSelection, parseFn, true)
+            }
+
+            function clearFragment(value, selectionStart, selectionEnd) {
+                var curRange;
+
+                while ((curRange = mask.getRange(curRange ? curRange.end + 1 : selectionStart))) {
+
+                    //out of selection
+                    if (curRange.start > selectionEnd)
+                        break;
+
+                    var rangeLength = curRange.end - curRange.start + 1;
+
+                    var subStr = value.slice(curRange.start, curRange.end + 1); //end incl.
+                    var from = selectionStart > curRange.start ? selectionStart : curRange.start;
+                    var to = selectionEnd > curRange.end ? (curRange.end + 1) : selectionEnd;
+
+                    //can add insert mode (replace cur char by new)
+                    var newSubStr = subStr.replaceAt(from - curRange.start, to - curRange.start, '');
+
+                    //add underscore at the end
+                    while (newSubStr.length < rangeLength) {
+                        newSubStr += '_';
+                    }
+
+                    //recalc newValue
+                    value = value.replaceAt(curRange.start, curRange.end + 1, newSubStr);
+                }
+
+                return value;
             }
 
             function isNeedDebounce() {
@@ -771,8 +937,13 @@
                 return data.settings || defaults;
             }
 
-            function getValue() {
-                return mask.isMaskProcessed() ? mask.unmaskValue(elm.val()) : elm.val();
+            function getValue(replaceUnderscore) {
+                return mask.isMaskProcessed() ? mask.unmaskValue(elm.val(), replaceUnderscore) : elm.val();
+            }
+
+            //remove all _ at the end and if _ not exist value is valid
+            function unmaskedValue(value) {
+                return mask.isMaskProcessed() ? value.replace(/[_]+$/g, '') : value;
             }
 
             function setValue(value, selection) {
@@ -794,11 +965,31 @@
             }
 
             function setRightSelection() {
-
                 if (mask.isMaskProcessed()) {
+                    var value = getValue();
+                    var unmaskSelection = getSelection();
+                    var actualSelection = elm.selection('getPos');
+                    var valueEndSelection = mask.getSelection({start: value.length, end: value.length});
 
+                    //set to start if: 1. value length equal zero 2. caret position less than value start position
+                    //set to end of value if: caret position more than value position
+                    if (value.length === 0 || unmaskSelection.start === 0) {
+                        setSelection(mask.getSelection({start: 0, end: 0}));
+                    } else if (actualSelection.start > valueEndSelection.start) {
+                        setSelection(mask.getSelection({start: value.length, end: value.length}));
+                    }
 
                 }
+            }
+
+            function isValid() {
+
+                if (mask.isMaskProcessed()) {
+                    var value = getValue();
+                    return mask.validateValue(unmaskedValue(value));
+                }
+                else
+                    return true;
 
             }
 
@@ -813,6 +1004,49 @@
                 settings: $.extend({}, data.settings, options)
             });
 
+        },
+        setValue: function (value) {
+
+            var elm = $(this);
+            var data = elm.data('type_easy');
+
+            if (!data) return '';
+
+            var mask = new Mask(data.settings.mask, elm);
+
+            if (mask.isMaskProcessed()) {
+                var masked = mask.unmaskValue(value || '');
+                value = mask.maskValue(masked);
+                elm.val(value);
+            } else {
+                elm.val(value || '');
+            }
+
+            return value || '';
+        },
+        getValue: function () {
+
+            var elm = $(this);
+            var data = elm.data('type_easy');
+
+            if (!data) return;
+
+            var mask = new Mask(data.settings.mask, elm);
+
+            if (mask.isMaskProcessed()) {
+                var value = mask.unmaskValue(elm.val());
+                value = value.replace(/[_]+$/g, '');
+
+                return {
+                    value: value,
+                    isValid: mask.validateValue(value)
+                }
+            } else {
+                return {
+                    value: elm.val(),
+                    isValid: true
+                }
+            }
         },
         destroy: function () {
             return this.each(function () {
@@ -841,6 +1075,16 @@
         return this.substr(0, start) + character + this.substr(end);
     };
 
+    String.prototype.replaceRange = function (start, end, character) {
+        var valueCopy = this;
+
+        while ((end--) > start) {
+            valueCopy = valueCopy.replaceAt(end, end + 1, '_')
+        }
+
+        return valueCopy;
+    };
+
     function debounce(func, wait, immediate) {
         var timeout;
         return function () {
@@ -860,7 +1104,6 @@
     //core logic from https://github.com/angular-ui/ui-utils/blob/master/modules/mask/mask.js
     function Mask(mask, elm) {
 
-        this.mask = mask;
         this.getRequiredLength = getRequiredLength;
         this.maskValue = maskValue;
         this.unmaskValue = unmaskValue;
@@ -868,10 +1111,13 @@
         this.getSelection = getSelection;
         this.getUnmaskedSelection = getUnmaskedSelection;
         this.validateValue = validateValue;
+        this.getRange = getRange;
+        this.replaceErrorByUnderscore = replaceErrorByUnderscore;
+        this.getMaskedSelection = getMaskedSelection;
 
         var maskProcessed = false;
         var maskCaretMap, maskPatterns, maskPlaceholder,
-            minRequiredLength, maskComponents;
+            minRequiredLength, maskComponents, groupedMaskComponents;
 
         processRawMask();
 
@@ -884,20 +1130,20 @@
             maskPatterns = [];
             maskPlaceholder = '';
 
-            if (typeof mask === 'string' && mask.length) {
+            if (typeof mask.pattern === 'string' && mask.pattern.length) {
                 minRequiredLength = 0;
 
                 var isOptional = false,
                     numberOfOptionalCharacters = 0,
-                    splitMask = mask.split('');
+                    splitMask = mask.pattern.split('');
 
                 splitMask.forEach(function (chr, i) {
-                    if (moduleSettings.maskDefinitions[chr]) {
+                    if (mask.maskDefinitions[chr]) {
 
                         maskCaretMap.push(characterCount);
 
                         maskPlaceholder += getPlaceholderChar(i - numberOfOptionalCharacters);
-                        maskPatterns.push(moduleSettings.maskDefinitions[chr]);
+                        maskPatterns.push(mask.maskDefinitions[chr]);
 
                         characterCount++;
                         if (!isOptional) {
@@ -919,6 +1165,7 @@
             maskCaretMap.push(maskCaretMap.slice().pop() + 1);
 
             maskComponents = getMaskComponents();
+            groupedMaskComponents = groupMaskPatterns();
             maskProcessed = maskCaretMap.length > 1 ? true : false;
         }
 
@@ -948,6 +1195,39 @@
             return maskPlaceholder.replace(/[_]+/g, '_').replace(/([^_]+)([a-zA-Zа-яА-ЯёЁ0-9])([^_])/g, '$1$2_$3').split('_');
         }
 
+        function groupMaskPatterns() {
+
+            var groupedMaskPatterns = [];
+
+            maskPatterns.forEach(function (mask) {
+
+                if (!groupedMaskPatterns.length) {
+                    groupedMaskPatterns.push({
+                        start: 0,
+                        end: 0,
+                        mask: mask
+                    })
+                } else {
+                    var last = groupedMaskPatterns[groupedMaskPatterns.length - 1];
+
+                    if (last.mask === mask) {
+                        last.end++;
+                    } else {
+                        groupedMaskPatterns.push({
+                            start: last.end + 1,
+                            end: last.end + 1,
+                            mask: mask
+                        })
+                    }
+
+                }
+
+            });
+
+            return groupedMaskPatterns;
+
+        }
+
         function isMaskProcessed() {
             return maskProcessed;
         }
@@ -973,12 +1253,10 @@
                 }
             });
 
-            console.info('masked', valueMasked);
-
             return valueMasked;
         }
 
-        function unmaskValue(value) {
+        function unmaskValue(value, replaceUnderscore) {
             var valueUnmasked = '',
                 maskPatternsCopy = maskPatterns.slice();
             // Preprocess by stripping mask components from value
@@ -986,14 +1264,15 @@
             maskComponents.forEach(function (component) {
                 value = value.replace(component, '');
             });
-            value.split('').forEach(function (chr) {
-                if (maskPatternsCopy.length && maskPatternsCopy[0].test(chr)) {
-                    valueUnmasked += chr;
-                    maskPatternsCopy.shift();
-                }
+
+            value.split('').forEach(function (chr, i) {
+                valueUnmasked += chr;
+                maskPatternsCopy.shift();
             });
 
-            console.info('unmasked', valueUnmasked);
+            //оставил по умолчанию всегда заполненное значение
+            if (replaceUnderscore)
+                valueUnmasked = valueUnmasked.replace(/(_)+$/g, '');
 
             return valueUnmasked;
         }
@@ -1014,7 +1293,14 @@
 
             var end = maskCaretMap.indexOf(selection.end);
 
-            return {start: start !== -1 ? start : maxCaretPos, end: end !== -1 ? end : maxCaretPos};
+            return {
+                start: start !== -1 ? start : maskCaretMap.length - 1,
+                end: end !== -1 ? end : maskCaretMap.length - 1
+            };
+        }
+
+        function getMaskedSelection(selection) {
+            return {start: maskCaretMap[selection.start], end: maskCaretMap[selection.end]}
         }
 
         function getSelection(selection) {
@@ -1023,11 +1309,50 @@
             return {start: start, end: end};
         }
 
-        function validateValue(unmaskedValue) {
-            return unmaskedValue.length <= getRequiredLength() &&
-                unmaskedValue.split('').every(function (chr, i) {
-                    return maskPatterns[i].test(chr);
+        function validateValue(unmaskedValue, emptyIsValid) {
+
+            if (unmaskedValue.length <= getRequiredLength()) {
+
+                return unmaskedValue.split('').every(function (chr, i) {
+                    var test = maskPatterns[i].test(chr);
+                    return test || (chr === '_' && emptyIsValid);
                 });
+
+            }
+
+            return false;
+        }
+
+        function replaceErrorByUnderscore(unmaskedValue, start) {
+
+            if (unmaskedValue.length > getRequiredLength())
+                return unmaskedValue;
+
+            if (!start)
+                start = 0;
+
+            var unmaskedValueCopy = unmaskedValue.slice(),
+                chars = unmaskedValue.split('');
+
+            for (var i = start; i < chars.length; i++) {
+                var test = maskPatterns[i].test(chars[i]) || chars[i] === '_';
+
+                if (!test) {
+                    unmaskedValueCopy = unmaskedValueCopy.replaceAt(i, i, '_');
+                    unmaskedValueCopy = replaceErrorByUnderscore(unmaskedValueCopy, i);
+                    break;
+                }
+            }
+
+            return unmaskedValueCopy;
+        }
+
+        function getRange(index) {
+
+            return groupedMaskComponents.filter(function (group) {
+                return index >= group.start && index <= group.end;
+            })[0];
+
         }
     }
 
