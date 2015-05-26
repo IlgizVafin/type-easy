@@ -1004,6 +1004,7 @@
                             .copyCSS(elm)
                             .css({
                                 'width': 'auto',
+                                'max-width': 'none',
                                 'visibility': 'hidden',
                                 'white-space': 'nowrap'
                             })
