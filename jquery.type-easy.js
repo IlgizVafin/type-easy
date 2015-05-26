@@ -757,9 +757,9 @@
                     }
                 }
                 newSelection = newSelection || {
-                        start: selection.end,
-                        end: selection.end
-                    };
+                    start: selection.end,
+                    end: selection.end
+                };
 
                 if (settings.maxLength >= 0 && value.length > settings.maxLength) {
                     return false;
@@ -997,20 +997,25 @@
 
             function scrollHorizontal(selection) {
                 if (elm[0].tagName === 'INPUT') {
+
                     var ruler =
                         $('<span>',
                             {
                                 'class': elm.attr('class'),
                                 'style': 'visibility: hidden; white-space: nowrap;'
                             })
-                            .text(elm.val().substr(0, selection.end))
+                            .html(elm.val().substr(0, selection.end).replace(/\s/g, '&nbsp;'))
+                            .copyCSS(elm)
+                            .css('width', 'auto')
                             .appendTo($('body'));
 
-                    var rulerW = ruler.width();
-                    var elmW = elm.width();
+                    var rulerW = ruler.width(),
+                        elmScrollLeft = elm.scrollLeft(),
+                        delta = 5,
+                        elmW = elm.width();
 
-                    if(rulerW > elmW){
-                        elm.scrollLeft(rulerW);
+                    if ((rulerW - elmScrollLeft) > elmW) {
+                        elm.scrollLeft(rulerW - elmW + delta);
                     }
 
                     ruler.remove();
@@ -1379,5 +1384,45 @@
 
         }
     }
+
+    $.fn.copyCSS = function (source) {
+        var dom = $(source).get(0);
+        var style;
+        var dest = {};
+        if (window.getComputedStyle) {
+            var camelize = function (a, b) {
+                return b.toUpperCase();
+            };
+            style = window.getComputedStyle(dom, null);
+            for (var i = 0, l = style.length; i < l; i++) {
+                var prop = style[i];
+                var camel = prop.replace(/\-([a-z])/g, camelize);
+                var val = style.getPropertyValue(prop);
+                dest[camel] = val;
+            }
+            ;
+            return this.css(dest);
+        }
+        ;
+        if (style = dom.currentStyle) {
+            for (var prop in style) {
+                dest[prop] = style[prop];
+            }
+            ;
+            return this.css(dest);
+        }
+        ;
+        if (style = dom.style) {
+            for (var prop in style) {
+                if (typeof style[prop] != 'function') {
+                    dest[prop] = style[prop];
+                }
+                ;
+            }
+            ;
+        }
+        ;
+        return this.css(dest);
+    };
 
 })(window.jQuery);
