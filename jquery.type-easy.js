@@ -999,14 +999,14 @@
                 if (elm[0].tagName === 'INPUT') {
 
                     var ruler =
-                        $('<span>',
-                            {
-                                'class': elm.attr('class'),
-                                'style': 'visibility: hidden; white-space: nowrap;'
-                            })
+                        $('<span>')
                             .html(elm.val().substr(0, selection.end).replace(/\s/g, '&nbsp;'))
                             .copyCSS(elm)
-                            .css('width', 'auto')
+                            .css({
+                                'width': 'auto',
+                                'visibility': 'hidden',
+                                'white-space': 'nowrap'
+                            })
                             .appendTo($('body'));
 
                     var rulerW = ruler.width(),
