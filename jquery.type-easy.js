@@ -767,14 +767,18 @@
                     return false;
                 }
 
-                if (document.activeElement === elm[0]) {
-                    if (mask.isMaskProcessed()) {
-                        value = mask.maskValue(value, newSelection);
-                        newSelection = mask.getSelection(newSelection);
-                    }
-
-                    setValue(value, newSelection);
+                /*
+                * Убрал данную проверку. Мешает выпадающему списку "месяц" при вводе значений посредством чисел, т.к. используется debounce режим ввода чисел (трансляция в строковое название месяце)
+                * */
+                //if (document.activeElement === elm[0]) {
+                if (mask.isMaskProcessed()) {
+                    value = mask.maskValue(value, newSelection);
+                    newSelection = mask.getSelection(newSelection);
                 }
+
+                setValue(value, newSelection);
+                //}
+
                 if ($.isFunction(valueChangedFn))
                     valueChangedFn(unmaskedValue(getValue()), isValid(), selection);
                 buffer.value = "";
