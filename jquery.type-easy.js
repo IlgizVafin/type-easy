@@ -544,6 +544,8 @@
                         return false;
                     else
                         altKey = true;
+                } else if (altKey) {
+                    altKey = false;
                 }
 
                 //prevent, if ctrl+key mapping not exist
@@ -757,9 +759,9 @@
                     }
                 }
                 newSelection = newSelection || {
-                    start: selection.end,
-                    end: selection.end
-                };
+                        start: selection.end,
+                        end: selection.end
+                    };
 
                 if (settings.maxLength >= 0 && value.length > settings.maxLength) {
                     return false;
