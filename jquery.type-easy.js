@@ -1069,7 +1069,7 @@
 
             if (!data) return '';
 
-            settings.formatters.forEach(function (formatter) {
+            data.settings.formatters.forEach(function (formatter) {
                 if(formatter.regexp){
                     value = value.replace(formatter.regexp, formatter.newSubStr);
                 }
