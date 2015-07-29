@@ -20,6 +20,10 @@
         debounce: {
             delay: 0,
             ifRegex: null
+        },
+        replace: {
+            regexp: '',
+            newSubStr: ''
         }
     };
     var moduleSettings = {
@@ -680,6 +684,10 @@
                 }
                 //}
 
+                if(settings.replace.regexp){
+                    newValue = newValue.replace(settings.replace.regexp, settings.replace.newSubStr);
+                }
+
                 buffer.tempValue += char;
                 buffer.value = newValue;
                 selection = {
@@ -1047,6 +1055,10 @@
             var data = elm.data('type_easy');
 
             if (!data) return '';
+
+            if(data.settings.replace.regexp){
+                value = value.toString().replace(data.settings.replace.regexp, data.settings.replace.newSubStr);
+            }
 
             var mask = new Mask(data.settings.mask, elm);
 
