@@ -21,10 +21,18 @@
             delay: 0,
             ifRegex: null
         },
-        replace: {
-            regexp: '',
-            newSubStr: ''
-        }
+        parsers: [ //view -> model
+            {
+                regexp: '',
+                newSubStr: ''
+            }
+        ],
+        formatters: [ //model -> view
+            {
+                regexp: '',
+                newSubStr: ''
+            }
+        ]
     };
     var moduleSettings = {
         'restrictRegex': "[^\\s/\\dёЁа-яА-Яa-zA-Z`~!@#$%^&*()_+-={}[/\\]:;\"'\\\\|<,>.?/№]+",
@@ -684,10 +692,6 @@
                 }
                 //}
 
-                if(settings.replace.regexp){
-                    newValue = newValue.replace(settings.replace.regexp, settings.replace.newSubStr);
-                }
-
                 buffer.tempValue += char;
                 buffer.value = newValue;
                 selection = {
@@ -776,8 +780,8 @@
                 }
 
                 /*
-                * Убрал данную проверку. Мешает выпадающему списку "месяц" при вводе значений посредством чисел, т.к. используется debounce режим ввода чисел (трансляция в строковое название месяце)
-                * */
+                 * Убрал данную проверку. Мешает выпадающему списку "месяц" при вводе значений посредством чисел, т.к. используется debounce режим ввода чисел (трансляция в строковое название месяце)
+                 * */
                 //if (document.activeElement === elm[0]) {
                 if (mask.isMaskProcessed()) {
                     value = mask.maskValue(value, newSelection);
@@ -787,8 +791,17 @@
                 setValue(value, newSelection);
                 //}
 
-                if ($.isFunction(valueChangedFn))
-                    valueChangedFn(unmaskedValue(getValue()), isValid(), selection);
+                if ($.isFunction(valueChangedFn)){
+                    var val = unmaskedValue(getValue());
+
+                    settings.parsers.forEach(function (parser) {
+                        if(parser.regexp){
+                            val = val.replace(parser.regexp, parser.newSubStr);
+                        }
+                    });
+
+                    valueChangedFn(val, isValid(), selection);
+                }
                 buffer.value = "";
                 buffer.tempValue = "";
                 if (isUpdateStack) updateStack();
@@ -1056,9 +1069,11 @@
 
             if (!data) return '';
 
-            if(data.settings.replace.regexp){
-                value = value.toString().replace(data.settings.replace.regexp, data.settings.replace.newSubStr);
-            }
+            settings.formatters.forEach(function (formatter) {
+                if(formatter.regexp){
+                    value = value.replace(formatter.regexp, formatter.newSubStr);
+                }
+            });
 
             var mask = new Mask(data.settings.mask, elm);
 
