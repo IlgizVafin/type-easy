@@ -1071,7 +1071,7 @@
 
             data.settings.formatters.forEach(function (formatter) {
                 if(formatter.regexp){
-                    value = value.toString().replace(formatter.regexp, formatter.newSubStr);
+                    value = (value || '').toString().replace(formatter.regexp, formatter.newSubStr);
                 }
             });
 
