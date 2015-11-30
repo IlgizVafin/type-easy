@@ -14,7 +14,7 @@
 <table>
     <tbody>
     <tr>
-        <td><input id="ruInput" type="text" class="testClass"/></td>
+        <td><input id="ruInput" type="text" class="testClass" /></td>
         <td>special symbols: "-", " ", "'". CAPS LOCK is disabled</td>
         <td>
             <button onclick="toggle()">toggle restrict</button>
@@ -83,7 +83,7 @@
     $('#ruInput').type_easy({
         language: 'RU',
         capsLockOff: true,
-        /*restrictRegex: /^[- ']|[^- 'ёЁа-яА-Я\d]|([- '])+\1/g,*/
+        restrictRegex: /[^- 'ёЁа-яА-Я\d]|([- '])+\1|^[- ']/g,
         upperCaseRegex: /^[^- ']|[- '][^- ']/g,
         //maxLength: 50,
      /*   mask: {

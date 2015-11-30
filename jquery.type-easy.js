@@ -545,8 +545,15 @@
                         if (e.ctrlKey) return false;
                         break;
                     case 65: //a
-                        if (e.ctrlKey) return true;
-                        break;
+                    case 67: //c
+                    case 86: //v
+                        if (e.ctrlKey)
+                        {
+                            // в Firefox ctrl+a,c,v вызывает keypress
+                            // Чтобы не плодить доп. логики переиспользовал условие с isNonPrintable
+                            isNonPrintable = true;
+                            return true;
+                        }
                 }
                 char = helper.getChar(e, settings.language);
 
@@ -587,8 +594,9 @@
                 var originChar = String.fromCharCode(e.keyCode || e.which);
                 char = char || originChar;
 
-                if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char))
+                if (new RegExp(moduleSettings.restrictRegex, 'g').test(char === '\\' ? '\\\\' : char)) {
                     return false;
+                }
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -603,9 +611,12 @@
                     };
 
                 //caps is on
-                if (originChar.toUpperCase() === originChar && originChar.toLowerCase() !== originChar && !e.shiftKey) {
+                if (originChar.toUpperCase() === originChar &&
+                    originChar.toLowerCase() !== originChar && !e.shiftKey) {
                     char = settings.capsLockOff ? char.toLowerCase() : char.toUpperCase();
-                } else if (originChar.toUpperCase() !== originChar && originChar.toLowerCase() === originChar && e.shiftKey) {
+                } else if (originChar.toUpperCase() !== originChar &&
+                    originChar.toLowerCase() === originChar &&
+                    e.shiftKey) {
                     char = settings.capsLockOff ? char.toUpperCase() : char.toLowerCase();
                 }
 
@@ -628,10 +639,27 @@
                     var tempArr,
                         restrict = false,
                         regex = new RegExp((settings.mask.restrictRegex || settings.restrictRegex).source, 'g');
+
                     while ((tempArr = regex.exec(newValue)) != null && !restrict) {
-                        if ((caretPosition >= tempArr.index && caretPosition <= regex.lastIndex) || (tempArr.index === 0 && regex.lastIndex === newValue.length)) restrict = true;
+
+                        var matchCaretStart = tempArr.index,
+                            matchLength = tempArr[0].length,
+                            matchCaretEnd = matchLength + tempArr.index;
+
+                        if (matchLength === 1) {
+                            restrict = (matchCaretEnd === caretPosition);
+                        } else if (matchLength > 1) {
+                            restrict = (caretPosition > matchCaretStart && caretPosition <= matchCaretEnd);
+                        }
+                        else {
+                            console.error('type-easy error');
+                            console.error(tempArr);
+                        }
                     }
-                    if (restrict) return false;
+
+                    if (restrict === true) {
+                        return false;
+                    }
                 }
 
                 if (mask.isMaskProcessed()) {
@@ -721,9 +749,9 @@
                 setDefaultState();
                 updateStack();
             });
-            elm.bind('paste.type_easy dragover.type_easy dragstart.type_easy drop.type_easy', function (e) {
-                e.preventDefault();
-            });
+            /*   elm.bind('paste.type_easy dragover.type_easy dragstart.type_easy drop.type_easy', function (e) {
+             e.preventDefault();
+             });*/
             elm.bind('focus.type_easy', function (e) {
                 if (mask.isMaskProcessed()) {
                     var value = getValue();
@@ -752,6 +780,9 @@
                     elm.val(mask.unmaskValue(elm.val()).replace(/_+$/, '') ? elm.val() : '');
                 }
             });
+
+            /* elm.bind('copy.type_easuy', function (e) {
+             });*/
             //elm.bind('click.type_easy', setRightSelection);
 
             function updateValue(value, selection, parseFn, isUpdateStack) {
@@ -791,11 +822,11 @@
                 setValue(value, newSelection);
                 //}
 
-                if ($.isFunction(valueChangedFn)){
+                if ($.isFunction(valueChangedFn)) {
                     var val = unmaskedValue(getValue());
 
                     settings.parsers.forEach(function (parser) {
-                        if(parser.regexp){
+                        if (parser.regexp) {
                             val = val.replace(parser.regexp, parser.newSubStr);
                         }
                     });
@@ -1070,7 +1101,7 @@
             if (!data) return '';
 
             data.settings.formatters.forEach(function (formatter) {
-                if(formatter.regexp){
+                if (formatter.regexp) {
                     value = (value || '').toString().replace(formatter.regexp, formatter.newSubStr);
                 }
             });
