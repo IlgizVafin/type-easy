@@ -547,8 +547,8 @@
                     case 65: //a
                     case 67: //c
                     case 86: //v
-                        if (e.ctrlKey)
-                        {
+                    case 88: //x
+                        if (e.ctrlKey) {
                             // в Firefox ctrl+a,c,v вызывает keypress
                             // Чтобы не плодить доп. логики переиспользовал условие с isNonPrintable
                             isNonPrintable = true;
@@ -652,8 +652,7 @@
                             restrict = (caretPosition > matchCaretStart && caretPosition <= matchCaretEnd);
                         }
                         else {
-                            console.error('type-easy error');
-                            console.error(tempArr);
+                            throw new Error('restrictRegex error in type-easy');
                         }
                     }
 
@@ -749,9 +748,19 @@
                 setDefaultState();
                 updateStack();
             });
-            /*   elm.bind('paste.type_easy dragover.type_easy dragstart.type_easy drop.type_easy', function (e) {
-             e.preventDefault();
-             });*/
+
+            elm.bind('dragover.type_easy dragstart.type_easy drop.type_easy', function (e) {
+                e.preventDefault();
+            });
+
+            elm.bind('paste.type_easy drop.type_easy', tryToPaste);
+            elm.bind('cut.type_easy', function (e) {
+                if (mask.isMaskProcessed()) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
             elm.bind('focus.type_easy', function (e) {
                 if (mask.isMaskProcessed()) {
                     var value = getValue();
@@ -807,6 +816,7 @@
                     };
 
                 if (settings.maxLength >= 0 && value.length > settings.maxLength) {
+                    setDefaultState();
                     return false;
                 }
 
@@ -833,8 +843,8 @@
 
                     valueChangedFn(val, isValid(), selection);
                 }
-                buffer.value = "";
-                buffer.tempValue = "";
+
+                setDefaultState();
                 if (isUpdateStack) updateStack();
             }
 
@@ -1079,6 +1089,38 @@
 
                     ruler.remove();
                 }
+            }
+
+            function tryToPaste(e) {
+                e.preventDefault();
+
+                // запрещаем копипаст в поля с маской
+                if (mask.isMaskProcessed()) {
+                    return false;
+                }
+
+                var selection = getSelection();
+                var pastedText = '';
+
+                if (window.clipboardData && window.clipboardData.getData) { // IE
+                    pastedText = window.clipboardData.getData('Text');
+                } else if (e.originalEvent && e.originalEvent.clipboardData && e.originalEvent.clipboardData.getData) {
+                    pastedText = e.originalEvent.clipboardData.getData('text/plain');
+                }
+
+                var value = getValue().replaceAt(selection.start, selection.end, pastedText);
+
+                var settings = getSettings();
+
+                // обрезаем значение если его длина больше заданной максимальной длины
+                if (settings.maxLength && value.slice) {
+                    value = value.slice(0, settings.maxLength)
+                }
+
+                selection.start += pastedText.length;
+                selection.end = selection.start;
+
+                updateValue(value, selection, parseFn, true);
             }
 
             return elm;
