@@ -1,6 +1,6 @@
 {
   "name": "type-easy",
-  "version": "0.0.27",
+  "version": "0.1.21",
   "description": "Type-easy is jQuery plugin that allows you to write without switching the keyboard layout.",
   "main": "jquery.type-easy.js",
   "dependencies": {
