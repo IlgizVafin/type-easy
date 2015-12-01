@@ -1113,8 +1113,9 @@
                 var settings = getSettings();
 
                 // обрезаем значение если его длина больше заданной максимальной длины
-                if (settings.maxLength && value.slice) {
-                    value = value.slice(0, settings.maxLength)
+                var maxLength = parseInt(settings.maxLength);
+                if (maxLength > 0 && value.slice) {
+                    value = value.slice(0, maxLength);
                 }
 
                 selection.start += pastedText.length;
