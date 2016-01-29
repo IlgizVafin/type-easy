@@ -425,15 +425,11 @@
                 return mapObj.ctrl;
             } else if (e.shiftKey) {
                 if (mapObj.shift) return mapObj.shift;
-                if (mapObj.
-                        default) return mapObj.
-                    default.toUpperCase();
+                if (mapObj.default) return mapObj.default.toUpperCase();
                 if (typeof mapObj == "string") return mapObj.toUpperCase();
                 return null;
             } else {
-                if (mapObj.
-                        default) return mapObj.
-                    default;
+                if (mapObj.default) return mapObj.default;
                 else if (typeof mapObj == "string") return mapObj;
             }
         },
@@ -1143,23 +1139,27 @@
 
             if (!data) return '';
 
+            if (value === null || typeof value === 'undefined') {
+                value = '';
+            }
+
             data.settings.formatters.forEach(function (formatter) {
                 if (formatter.regexp) {
-                    value = (value || '').toString().replace(formatter.regexp, formatter.newSubStr);
+                    value = value.toString().replace(formatter.regexp, formatter.newSubStr);
                 }
             });
 
             var mask = new Mask(data.settings.mask, elm);
 
             if (mask.isMaskProcessed()) {
-                var masked = mask.unmaskValue(value || '');
+                var masked = mask.unmaskValue(value);
                 value = mask.maskValue(masked);
                 elm.val(value);
             } else {
-                elm.val(value || '');
+                elm.val(value);
             }
 
-            return value || '';
+            return value;
         },
         getValue: function () {
 
